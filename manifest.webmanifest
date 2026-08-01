@@ -1,13 +1,13 @@
 {
-  "name": "民宿營運管理系統 v8.2",
+  "name": "民宿營運管理系統 v9",
   "short_name": "民宿營運",
-  "description": "支援頁面記憶、主頁快速篩選與 Google 使用者帳號連接的民宿營運系統。",
+  "description": "適合手機、iPad 與電腦的民宿營運管理系統。",
   "lang": "zh-Hant",
-  "start_url": "./",
+  "start_url": "./#/home",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f3ed",
-  "theme_color": "#315f57",
+  "background_color": "#f5f4ef",
+  "theme_color": "#55755f",
   "icons": [
     {
       "src": "./icons/icon-192.png",
