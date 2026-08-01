@@ -23,7 +23,22 @@ function bind() {
     $('checkOutDate').min=next;
     if(!$('bookingId').value||$('checkOutDate').value<next)$('checkOutDate').value=next
   };
-  $('headerUserBtn').onclick=()=>show('basicPage');
+  $('headerUserBtn').onclick=()=>show('accountPage');
+  $('connectAccountBtn').onclick = async () => {
+    try {
+      await connectGoogleAccount();
+      alert('Google 帳號已連接');
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  $('disconnectAccountBtn').onclick = async () => {
+    if (confirm('確定登出並清除已保存的帳號名稱與電子郵件？')) {
+      await disconnectGoogleAccount();
+    }
+  };
+
   $('bookingForm').onsubmit=async e=> {
     e.preventDefault();
     let id=$('bookingId').value,b=id?state.bookings.find(x=>x.id===id): {
@@ -44,7 +59,7 @@ function bind() {
   };
   $('bookingMonth').onchange=$('bookingFilter').onchange=renderBookings;
   $('workDate').value=today();
-  $('workDate').onchange=renderHousekeeping;
+  $('workDate').onchange=()=>{sessionStorage.setItem('homestay_work_date',$('workDate').value);renderHousekeeping()};
   $('backChecklistBtn').onclick=()=>show('housekeepingView');
   $('finishAreaBtn').onclick=async()=> {
     let r=getRecord($('workDate').value),ar=r.areas[activeAreaId];
@@ -84,7 +99,7 @@ function bind() {
     state.settings.propertyName=$('propertyNameInput').value||'我的民宿';
     state.settings.userName=$('userNameInput').value||'民宿主人';
     $('propertyTitle').textContent=state.settings.propertyName;
-    $('headerUserName').textContent=state.settings.userName;
+    refreshHeaderUser();
     await save();
     alert('已儲存')
   };
@@ -103,7 +118,7 @@ function bind() {
   $('addSopItemBtn').onclick=()=>sopForm();
   $('exportExcelBtn').onclick=()=>download(workbook(),`民宿營運完整紀錄_${today()}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   $('backupJsonBtn').onclick=()=>download(JSON.stringify( {
-    version:'8.0.0',data:state
+    version:'8.2.0',data:state
   },null,2),`民宿營運備份_${today()}.json`,'application/json');
   $('restoreJsonInput').onchange=e=> {
     let fr=new FileReader();
@@ -126,7 +141,7 @@ function bind() {
   };
   $('connectGoogleBtn').onclick=async()=> {
     try {
-      await requestToken();
+      await connectGoogleAccount();
       renderGoogle()
     } catch(e) {
       alert(e.message)
@@ -136,25 +151,62 @@ function bind() {
   $('restoreGoogleBtn').onclick=restoreCloud;
   $('disconnectGoogleBtn').onclick=()=> {
     googleToken='';
-    renderGoogle()
+    tokenExpiry=0;
+    renderGoogle();
+    renderAccount()
   }
 }
 
 // ===== 系統啟動 =====
 async function start() {
   await openDb();
-  state=await dbGet()||defaults();
-  state.bookings??=[];
-  state.maintenance??=[];
-  state.transactions??=[];
-  state.rooms??=defaults().rooms;
-  state.settings.google??=defaults().settings.google;
-  state.settings.userName??='民宿主人';
-  state.bookings.forEach(b=>b.checkInTime??='15:00');
+  state = await dbGet() || defaults();
+
+  state.bookings ??= [];
+  state.maintenance ??= [];
+  state.transactions ??= [];
+  state.rooms ??= defaults().rooms;
+  state.settings.google ??= defaults().settings.google;
+  state.settings.account ??= defaults().settings.account;
+  state.settings.userName ??= "民宿主人";
+  state.bookings.forEach((booking) => {
+    booking.checkInTime ??= "15:00";
+  });
+
+  activeAreaId = sessionStorage.getItem("homestay_active_area") || null;
+  settingsAreaId = sessionStorage.getItem("homestay_settings_area") || null;
+  settingsGroup = sessionStorage.getItem("homestay_settings_group") || "";
+
   await save();
-  $('propertyTitle').textContent=state.settings.propertyName;
-  $('headerUserName').textContent=state.settings.userName;
-  $('bookingMonth').value=$('financeMonth').value=$('analyticsMonth').value=today().slice(0,7);
+
+  $("propertyTitle").textContent = state.settings.propertyName;
+  refreshHeaderUser();
+
+  const savedMonth = sessionStorage.getItem("homestay_booking_month") || today().slice(0, 7);
+  const savedFilter = sessionStorage.getItem("homestay_booking_filter") || "all";
+  const savedWorkDate = sessionStorage.getItem("homestay_work_date") || today();
+
+  $("bookingMonth").value = savedMonth;
+  $("bookingFilter").value = savedFilter;
+  $("financeMonth").value = today().slice(0, 7);
+  $("analyticsMonth").value = today().slice(0, 7);
+  $("workDate").value = savedWorkDate;
+
   bind();
-  renderDashboard()
-} start().catch(e=>alert('系統啟動失敗：'+e.message));
+
+  const hashView = location.hash.replace("#", "");
+  const savedView = hashView || sessionStorage.getItem(VIEW_STORAGE_KEY) || "dashboardView";
+
+  // 若缺少必要的上下文，回到對應的上層頁面。
+  let initialView = savedView;
+  if (savedView === "checklistView" && !activeAreaId) initialView = "housekeepingView";
+  if (["areaDetailPage", "groupDetailPage"].includes(savedView) && !settingsAreaId) {
+    initialView = "areasPage";
+  }
+
+  show(initialView);
+}
+
+start().catch((error) => {
+  alert(`系統啟動失敗：${error.message}`);
+});

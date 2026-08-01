@@ -7,11 +7,65 @@
 
 // ===== 訂房清單 =====
 function renderBookings() {
-  let m=$('bookingMonth').value||today().slice(0,7),f=$('bookingFilter').value;
-  $('bookingMonth').value=m;
-  $('bookingRoom').innerHTML=state.rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
-  let bs=state.bookings.filter(b=>b.checkIn.startsWith(m)||b.checkOut.startsWith(m)).filter(b=>f==='all'||(f==='upcoming'&&bookingStatus(b)==='已確認')||(f==='stay'&&bookingStatus(b)==='住宿中')||(f==='completed'&&bookingStatus(b)==='已退房')||(f==='cancelled'&&bookingStatus(b)==='已取消')).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
-  $('bookingList').innerHTML=bs.map(b=>`<article class="list-item"><div class="list-head"><div><strong>${esc(b.guest)}｜${esc(roomName(b.roomId))}</strong><div class="muted">${b.checkIn}${b.checkInTime?` ${b.checkInTime}`:""} → ${b.checkOut}・${b.guests}人・${esc(b.platform)}</div></div><span class="tag">${bookingStatus(b)}</span></div><div>房價 $${(+b.amount||0).toLocaleString()}・訂金 $${(+b.deposit||0).toLocaleString()}</div>${b.notes?`<p class="muted">${esc(b.notes)}</p>`:''}<div class="list-actions"><button class="secondary-btn compact" onclick="editBooking('${b.id}')">修改</button><button class="secondary-btn compact" onclick="checkInBooking('${b.id}')">入住</button><button class="secondary-btn compact" onclick="checkoutBooking('${b.id}')">退房</button><button class="secondary-btn compact danger-text" onclick="deleteBooking('${b.id}')">刪除</button></div></article>`).join('')||'<div class="card">沒有符合條件的訂房。</div>'
+  const month = $("bookingMonth").value || today().slice(0, 7);
+  const filter = $("bookingFilter").value;
+  const currentDate = today();
+
+  $("bookingMonth").value = month;
+  sessionStorage.setItem("homestay_booking_month", month);
+  sessionStorage.setItem("homestay_booking_filter", filter);
+
+  $("bookingRoom").innerHTML = state.rooms.map((room) =>
+    `<option value="${room.id}">${esc(room.name)}</option>`
+  ).join("");
+
+  const bookings = state.bookings
+    .filter((booking) =>
+      filter === "today-in" || filter === "today-out"
+        ? true
+        : booking.checkIn.startsWith(month) || booking.checkOut.startsWith(month)
+    )
+    .filter((booking) => {
+      if (filter === "all") return true;
+      if (filter === "today-in") {
+        return booking.checkIn === currentDate && booking.status !== "cancelled";
+      }
+      if (filter === "today-out") {
+        return booking.checkOut === currentDate && booking.status !== "cancelled";
+      }
+      if (filter === "upcoming") return bookingStatus(booking) === "已確認";
+      if (filter === "stay") return bookingStatus(booking) === "住宿中";
+      if (filter === "completed") return bookingStatus(booking) === "已退房";
+      if (filter === "cancelled") return bookingStatus(booking) === "已取消";
+      return true;
+    })
+    .sort((left, right) => left.checkIn.localeCompare(right.checkIn));
+
+  $("bookingList").innerHTML = bookings.map((booking) => `
+    <article class="list-item">
+      <div class="list-head">
+        <div>
+          <strong>${esc(booking.guest)}｜${esc(roomName(booking.roomId))}</strong>
+          <div class="muted">
+            ${booking.checkIn}${booking.checkInTime ? ` ${booking.checkInTime}` : ""}
+            → ${booking.checkOut}・${booking.guests}人・${esc(booking.platform)}
+          </div>
+        </div>
+        <span class="tag">${bookingStatus(booking)}</span>
+      </div>
+      <div>
+        房價 $${(+booking.amount || 0).toLocaleString()}・
+        訂金 $${(+booking.deposit || 0).toLocaleString()}
+      </div>
+      ${booking.notes ? `<p class="muted">${esc(booking.notes)}</p>` : ""}
+      <div class="list-actions">
+        <button class="secondary-btn compact" onclick="editBooking('${booking.id}')">修改</button>
+        <button class="secondary-btn compact" onclick="checkInBooking('${booking.id}')">入住</button>
+        <button class="secondary-btn compact" onclick="checkoutBooking('${booking.id}')">退房</button>
+        <button class="secondary-btn compact danger-text" onclick="deleteBooking('${booking.id}')">刪除</button>
+      </div>
+    </article>
+  `).join("") || '<div class="card">沒有符合條件的訂房。</div>';
 }
 
 function plusDays(dateString,days) {

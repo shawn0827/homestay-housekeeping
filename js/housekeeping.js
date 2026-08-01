@@ -55,22 +55,67 @@ function renderHousekeeping() {
     let x=areaStats(a.id,r);
     return`<button class="area-card ${x.pct===100?'done':''}" onclick="openChecklist('${a.id}')"><span>${a.icon}</span><strong>${esc(a.name)}</strong><small>${x.done}/${x.total} 項・${x.pct}%</small><div class="mini-progress"><div style="width:${x.pct}%"></div></div></button>`
   }).join('')
-} window.openChecklist=id=> {
-  activeAreaId=id;
-  let a=state.templates.find(x=>x.id===id),r=getRecord($('workDate').value),ar=r.areas[id];
-  $('checklistTitle').textContent=a.name;
-  $('areaNotes').value=ar.notes;
-  $('checklistGroups').innerHTML=[...new Set(a.items.map(i=>i.group))].map(g=>`<section class="check-group"><h3>${esc(g)}</h3>${a.items.filter(i=>i.group===g).map(i=>`<label class="check-item"><input type="checkbox" data-item="${i.id}" ${ar.checks[i.id]?'checked':''}><span>${esc(i.text)}</span></label>`).join('')}</section>`).join('');
-  document.querySelectorAll('[data-item]').forEach(c=>c.onchange=async()=> {
-    ar.checks[c.dataset.item]=c.checked;
-    r.completedAt=null;
-    await save();
-    updateAreaPct()
+}
+
+window.openChecklist = (id) => {
+  activeAreaId = id;
+  sessionStorage.setItem("homestay_active_area", id);
+  show("checklistView");
+};
+
+function renderActiveChecklist() {
+  if (!activeAreaId) {
+    show("housekeepingView");
+    return;
+  }
+
+  const area = state.templates.find((item) => item.id === activeAreaId);
+  if (!area) {
+    activeAreaId = null;
+    sessionStorage.removeItem("homestay_active_area");
+    show("housekeepingView");
+    return;
+  }
+
+  const date = $("workDate").value || today();
+  const record = getRecord(date);
+  const areaRecord = record.areas[activeAreaId];
+
+  $("checklistTitle").textContent = area.name;
+  $("areaNotes").value = areaRecord.notes;
+
+  const groups = [...new Set(area.items.map((item) => item.group))];
+  $("checklistGroups").innerHTML = groups.map((group) => `
+    <section class="check-group">
+      <h3>${esc(group)}</h3>
+      ${area.items
+        .filter((item) => item.group === group)
+        .map((item) => `
+          <label class="check-item">
+            <input
+              type="checkbox"
+              data-item="${item.id}"
+              ${areaRecord.checks[item.id] ? "checked" : ""}
+            >
+            <span>${esc(item.text)}</span>
+          </label>
+        `).join("")}
+    </section>
+  `).join("");
+
+  document.querySelectorAll("[data-item]").forEach((checkbox) => {
+    checkbox.onchange = async () => {
+      areaRecord.checks[checkbox.dataset.item] = checkbox.checked;
+      record.completedAt = null;
+      await save();
+      updateAreaPct();
+    };
   });
+
   renderPhotos();
   updateAreaPct();
-  show('checklistView')
-};
+}
+
 function updateAreaPct() {
   $('areaPercent').textContent=areaStats(activeAreaId).pct+'%'
 }

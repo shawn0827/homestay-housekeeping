@@ -17,6 +17,7 @@ function renderSettingsAreas() {
   $('settingsAreaList').innerHTML=state.templates.map(a=>`<button class="settings-list-row" onclick="openSettingsArea('${a.id}')"><span style="font-size:24px">${a.icon}</span><div style="flex:1;text-align:left"><strong>${esc(a.name)}</strong><small>${new Set(a.items.map(i=>i.group)).size} 個分類・${a.items.length} 項</small></div><b>›</b></button>`).join('')
 } window.openSettingsArea=id=> {
   settingsAreaId=id;
+  sessionStorage.setItem("homestay_settings_area", id);
   show('areaDetailPage')
 };
 function renderSettingsAreaDetail() {
@@ -26,6 +27,7 @@ function renderSettingsAreaDetail() {
   $('settingsGroupList').innerHTML=[...new Set(a.items.map(i=>i.group))].map(g=>`<button class="settings-list-row" onclick="openSettingsGroup('${esc(g)}')"><div style="flex:1;text-align:left"><strong>${esc(g)}</strong><small>${a.items.filter(i=>i.group===g).length} 項</small></div><b>›</b></button>`).join('')
 } window.openSettingsGroup=g=> {
   settingsGroup=g;
+  sessionStorage.setItem("homestay_settings_group", g);
   show('groupDetailPage')
 };
 function renderSettingsGroup() {
@@ -64,7 +66,7 @@ function inventoryForm(i= {
   }, {
     id:'unit',label:'單位',value:i.unit
   }, {
-    id:'usage',label:'累計耗用（誤按時可在此修正）',type:'number',value:i.usage||0
+    id:'usage',label:'累計耗用',type:'number',value:i.usage||0
   }],async v=> {
     if(i.id)Object.assign(i, {
       name:v.name,qty:+v.qty,min:+v.min,unit:v.unit,usage:Math.max(0,+v.usage||0)

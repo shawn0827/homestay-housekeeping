@@ -5,8 +5,18 @@
  * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
  */
 
-const DB_NAME="homestay_ops_v7",STORE="state",VERSION="8.0.0";
-let db,state,activeAreaId=null,settingsAreaId=null,settingsGroup="",googleToken="",tokenExpiry=0;
+const DB_NAME = "homestay_ops_v7";
+const STORE = "state";
+const VERSION = "8.2.0";
+const VIEW_STORAGE_KEY = "homestay_current_view";
+
+let db;
+let state;
+let activeAreaId = null;
+let settingsAreaId = null;
+let settingsGroup = "";
+let googleToken = "";
+let tokenExpiry = 0;
 const $=id=>document.getElementById(id),today=()=>new Date().toISOString().slice(0,10),uid=p=>p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),esc=s=>String(s??"").replace(/[&<>"']/g,m=>( {
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
 } [m]));
@@ -17,7 +27,7 @@ function defaults() {
   });
   return {
     settings: {
-      propertyName:"我的民宿",userName:"民宿主人",google: {
+      propertyName:"我的民宿",userName:"民宿主人",account:{provider:"",name:"",email:"",picture:"",connectedAt:""},google: {
         clientId:"",folderName:"民宿營運管理系統備份",autoSync:true,folderId:"",latestId:""
       }
     },rooms:[ {
@@ -80,13 +90,45 @@ function save() {
 }
 
 // ===== 頁面切換與共用介面 =====
-function show(id) {
-  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
-  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.view===id));
-  ( {
-    dashboardView:renderDashboard,bookingsView:renderBookings,housekeepingView:renderHousekeeping,inventoryView:renderInventory,maintenanceView:renderMaintenance,financeView:renderFinance,analyticsView:renderAnalytics,basicPage:renderBasic,areasPage:renderSettingsAreas,areaDetailPage:renderSettingsAreaDetail,groupDetailPage:renderSettingsGroup,googlePage:renderGoogle
-  } [id]?.());
-  scrollTo(0,0)
+function show(id, options = {}) {
+  const view = document.getElementById(id) ? id : "dashboardView";
+
+  document.querySelectorAll(".view").forEach((element) => {
+    element.classList.toggle("active", element.id === view);
+  });
+
+  document.querySelectorAll(".nav-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === view);
+  });
+
+  const renderers = {
+    dashboardView: renderDashboard,
+    bookingsView: renderBookings,
+    housekeepingView: renderHousekeeping,
+    checklistView: renderActiveChecklist,
+    inventoryView: renderInventory,
+    maintenanceView: renderMaintenance,
+    financeView: renderFinance,
+    analyticsView: renderAnalytics,
+    accountPage: renderAccount,
+    basicPage: renderBasic,
+    areasPage: renderSettingsAreas,
+    areaDetailPage: renderSettingsAreaDetail,
+    groupDetailPage: renderSettingsGroup,
+    googlePage: renderGoogle,
+  };
+
+  renderers[view]?.();
+
+  if (!options.skipHistory) {
+    sessionStorage.setItem(VIEW_STORAGE_KEY, view);
+    sessionStorage.setItem("homestay_active_area", activeAreaId || "");
+    sessionStorage.setItem("homestay_settings_area", settingsAreaId || "");
+    sessionStorage.setItem("homestay_settings_group", settingsGroup || "");
+    history.replaceState(null, "", `#${view}`);
+  }
+
+  window.scrollTo(0, 0);
 }
 
 function roomName(id) {
@@ -99,4 +141,15 @@ function bookingStatus(b) {
   if(b.status==='completed'||b.checkOut<d)return'已退房';
   if(b.status==='checkedin'||(b.checkIn<=d&&b.checkOut>d))return'住宿中';
   return'已確認'
+}
+
+
+// ===== 使用者顯示名稱 =====
+function displayedUserName() {
+  return state?.settings?.account?.name || state?.settings?.userName || "民宿主人";
+}
+
+function refreshHeaderUser() {
+  const target = $("headerUserName");
+  if (target) target.textContent = displayedUserName();
 }

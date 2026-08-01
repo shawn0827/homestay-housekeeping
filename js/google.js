@@ -6,30 +6,118 @@
  */
 
 // ===== Google OAuth 與 Drive API =====
-const SCOPE='https://www.googleapis.com/auth/drive.file';
+const SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
 function renderGoogle() {
-  let g=state.settings.google;
-  $('googleClientIdInput').value=g.clientId;
-  $('googleFolderNameInput').value=g.folderName;
-  $('googleAutoSyncInput').checked=g.autoSync;
-  $('googleStatus').textContent=googleToken?'Google Drive 已連接':'尚未連接 Google Drive'
+  const googleSettings = state.settings.google;
+  $("googleClientIdInput").value = googleSettings.clientId;
+  $("googleFolderNameInput").value = googleSettings.folderName;
+  $("googleAutoSyncInput").checked = googleSettings.autoSync;
+
+  const account = state.settings.account || {};
+  const identity = account.email ? `（${account.email}）` : "";
+  $("googleStatus").textContent = googleToken
+    ? `Google Drive 已連接 ${identity}`
+    : account.email
+      ? `帳號已記錄 ${identity}，請重新連接以使用雲端功能`
+      : "尚未連接 Google Drive";
 }
 
-function requestToken() {
-  return new Promise((res,rej)=> {
-    let g=state.settings.google;
-    if(!g.clientId)return rej(Error('請先輸入 Client ID'));
-    google.accounts.oauth2.initTokenClient( {
-      client_id:g.clientId,scope:SCOPE,callback:r=> {
-        if(r.error)return rej(Error(r.error));
-        googleToken=r.access_token;
-        tokenExpiry=Date.now()+(r.expires_in-60)*1000;
-        res()
-      }
-    }).requestAccessToken( {
-      prompt:''
-    })
-  })
+function renderAccount() {
+  const account = state.settings.account || {};
+  const connectedInThisSession = Boolean(googleToken);
+
+  $("accountDisplayName").textContent = account.name || "尚未連接帳號";
+  $("accountEmail").textContent = account.email || "連接 Google 後會顯示姓名與電子郵件";
+
+  const avatar = document.querySelector("#accountProfile .account-avatar");
+  avatar.innerHTML = account.picture
+    ? `<img src="${esc(account.picture)}" alt="Google 帳號頭像">`
+    : "👤";
+
+  $("accountStatus").textContent = connectedInThisSession
+    ? "Google 帳號已連接，本次可使用雲端同步。"
+    : account.email
+      ? "帳號資料已保存，但本次授權尚未連接。"
+      : "帳號尚未連接。請先在 Google Drive 頁面設定 OAuth Client ID。";
+}
+
+function requestToken(prompt = "") {
+  return new Promise((resolve, reject) => {
+    const googleSettings = state.settings.google;
+
+    if (!googleSettings.clientId) {
+      reject(new Error("請先到 Google Drive 設定輸入 OAuth Client ID"));
+      return;
+    }
+
+    if (!window.google?.accounts?.oauth2) {
+      reject(new Error("Google 登入程式尚未載入，請確認網路連線"));
+      return;
+    }
+
+    google.accounts.oauth2.initTokenClient({
+      client_id: googleSettings.clientId,
+      scope: SCOPE,
+      callback: (response) => {
+        if (response.error) {
+          reject(new Error(response.error_description || response.error));
+          return;
+        }
+
+        googleToken = response.access_token;
+        tokenExpiry = Date.now() + ((response.expires_in || 3600) - 60) * 1000;
+        resolve();
+      },
+    }).requestAccessToken({ prompt });
+  });
+}
+
+async function fetchGoogleProfile() {
+  const response = await gfetch("https://openidconnect.googleapis.com/v1/userinfo");
+  return response.json();
+}
+
+async function connectGoogleAccount() {
+  await requestToken("consent");
+  const profile = await fetchGoogleProfile();
+
+  state.settings.account = {
+    provider: "google",
+    name: profile.name || profile.given_name || state.settings.userName || "Google 使用者",
+    email: profile.email || "",
+    picture: profile.picture || "",
+    connectedAt: new Date().toISOString(),
+  };
+
+  await save();
+  refreshHeaderUser();
+  renderAccount();
+  renderGoogle();
+}
+
+async function disconnectGoogleAccount() {
+  if (googleToken && window.google?.accounts?.oauth2) {
+    try {
+      google.accounts.oauth2.revoke(googleToken, () => {});
+    } catch (error) {
+      console.warn("Google 權杖撤銷失敗", error);
+    }
+  }
+
+  googleToken = "";
+  tokenExpiry = 0;
+  state.settings.account = {
+    provider: "",
+    name: "",
+    email: "",
+    picture: "",
+    connectedAt: "",
+  };
+
+  await save();
+  refreshHeaderUser();
+  renderAccount();
+  renderGoogle();
 }
 
 async function gfetch(url,opt= {
@@ -77,7 +165,7 @@ async function syncGoogle() {
     $('googleStatus').textContent='同步中…';
     await upload('民宿營運_完整紀錄.xlsx',new Blob([workbook()]),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     await upload('民宿營運_系統還原備份.json',new Blob([JSON.stringify( {
-      version:'8.0.0',data:state
+      version:'8.2.0',data:state
     },null,2)]),'application/json');
     $('googleStatus').textContent='同步完成 '+new Date().toLocaleString('zh-TW')
   } catch(e) {
