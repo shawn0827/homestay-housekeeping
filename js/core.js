@@ -3,7 +3,8 @@
    ================================================================ */
 'use strict';
 
-const APP_VERSION = '9.1.0';
+const APP_VERSION = '10.1.0';
+// 保留 v9 的資料庫名稱，避免升級 v10 後既有資料消失。
 const DB_NAME = 'homestay_operation_v9';
 const DB_VERSION = 1;
 const STORE_NAME = 'state';

@@ -53,7 +53,7 @@ function openBookingForm(booking = {}) {
     { name: 'roomId', label: '房間', type: 'select', value: booking.roomId || state.areas[0]?.id, options: state.areas.filter(area => !['common','laundry'].includes(area.id)).map(area => ({ value: area.id, label: area.name })), required: true },
     { name: 'guests', label: '入住人數', type: 'number', value: booking.guests || 2, min: 1, required: true },
     { name: 'checkIn', label: '入住日期', type: 'date', value: arrival, required: true },
-    { name: 'checkInTime', label: '預計入住時間', type: 'time', value: booking.checkInTime || '15:00', help: '主頁會依此時間顯示入住提醒。' },
+    { name: 'checkInTime', label: '預計入住時間', type: 'time', value: booking.checkInTime || '15:00' },
     { name: 'checkOut', label: '退房日期', type: 'date', value: booking.checkOut || addDays(arrival, 1), required: true },
     { name: 'platform', label: '訂房平台', value: booking.platform || '官網／直接訂房' },
     { name: 'amount', label: '總房價', type: 'number', value: booking.amount || 0, min: 0 },

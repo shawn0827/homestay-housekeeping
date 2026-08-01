@@ -102,7 +102,7 @@ async function initializePersistentGoogleAccount() {
 async function connectGoogle({ prompt = 'consent' } = {}) {
   const clientId = state.settings.google.clientId;
   if (!clientId) {
-    showToast('請先在 Google Drive 設定輸入 Client ID');
+    showToast('請先在「民宿基本資料與帳號」輸入 Client ID');
     return false;
   }
 

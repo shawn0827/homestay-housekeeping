@@ -1,4 +1,6 @@
-/* app.js — 系統啟動、路由與手機下拉重新整理 */
+/* ================================================================
+   app.js — 系統啟動、路由與手機下拉重新整理
+   ================================================================ */
 'use strict';
 
 const renderers = {
@@ -10,7 +12,7 @@ const renderers = {
   finance: params => renderFinance(params),
   reports: () => renderReports(),
   settings: params => renderSettings(params),
-  account: () => renderAccountSettings()
+  account: () => renderProfileSettings()
 };
 
 function renderRoute() {
@@ -27,12 +29,14 @@ function updateHeader() {
   $('#propertyTitle').textContent = state.settings.propertyName || '我的民宿';
   const account = state.settings.account;
   $('#accountName').textContent = account?.name || state.settings.userName || '民宿主人';
-  $('#accountAvatar').innerHTML = account?.picture ? `<img src="${escapeHtml(account.picture)}" alt="帳號頭像">` : '👤';
+  $('#accountAvatar').innerHTML = account?.picture
+    ? `<img src="${escapeHtml(account.picture)}" alt="帳號頭像">`
+    : '<img class="account-default-icon" src="./assets/icons/account.svg" alt="">';
 }
 
 function bindGlobalEvents() {
   $('#homeBrand').onclick = () => navigate('home');
-  $('#accountButton').onclick = () => navigate('settings', { page: 'account' });
+  $('#accountButton').onclick = () => navigate('settings', { page: 'profile' });
   $$('.bottom-nav button').forEach(button => button.onclick = () => navigate(button.dataset.route));
   window.addEventListener('hashchange', renderRoute);
   enablePullToRefresh();
