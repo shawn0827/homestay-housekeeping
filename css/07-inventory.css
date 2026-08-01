@@ -1,0 +1,62 @@
+/* ================================================================
+   07-inventory.css — 備品單列式資訊與操作區
+   ================================================================ */
+.inventory-list {
+  display: grid;
+  gap: 10px;
+}
+
+.inventory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: var(--surface);
+}
+
+.inventory-row-main {
+  min-width: 0;
+}
+
+.inventory-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.inventory-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.inventory-metrics > div {
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.inventory-metrics span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inventory-metrics strong {
+  display: block;
+  font-size: 17px;
+}
+
+.inventory-row-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(62px, 1fr));
+  gap: 7px;
+  width: 154px;
+}

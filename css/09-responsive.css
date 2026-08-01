@@ -1,0 +1,243 @@
+/* ================================================================
+   09-responsive.css — 平板、手機與電腦版覆寫
+   ================================================================ */
+@media (max-width: 820px) {
+  .grid-4,
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checklist-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .group-menu {
+    position: static;
+    display: flex;
+    padding-bottom: 3px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .group-button {
+    min-width: 150px;
+    flex: 0 0 auto;
+  }
+
+  .housekeeping-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  body {
+    padding-bottom: var(--nav-height);
+  }
+
+  .app-header {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .brand-copy strong {
+    max-width: 145px;
+  }
+
+  .account-button {
+    max-width: 118px;
+    padding: 7px 9px;
+  }
+
+  .account-button > span:last-child {
+    font-size: 13px;
+  }
+
+  .app-shell {
+    padding: 14px 12px 24px;
+  }
+
+  .page-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+  }
+
+  .page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .page-home > .page-header {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .page-home > .page-header > div:first-child {
+    min-width: 0;
+  }
+
+  .page-home > .page-header h1 {
+    font-size: 24px;
+    white-space: nowrap;
+  }
+
+  .page-home > .page-header .page-actions {
+    width: auto;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .page-home > .page-header .primary-button {
+    min-height: 40px;
+    padding: 9px 11px;
+    white-space: nowrap;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kpi-card {
+    min-height: 105px;
+    padding: 14px;
+  }
+
+  .kpi-card strong {
+    font-size: 27px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .wide {
+    grid-column: auto;
+  }
+
+  .list-head {
+    flex-direction: column;
+  }
+
+  .list-head > .button-row {
+    width: 100%;
+  }
+
+  .list-head > .button-row button {
+    flex: 1;
+  }
+
+  .toolbar > * {
+    flex: 1 1 140px;
+  }
+
+  .housekeeping-grid {
+    gap: 10px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .check-row {
+    padding: 12px;
+  }
+
+  .dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dialog-actions button {
+    width: 100%;
+  }
+
+  .inventory-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .inventory-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .inventory-metrics > div {
+    padding: 8px;
+  }
+
+  .inventory-metrics strong {
+    font-size: 15px;
+  }
+
+  .inventory-row-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .inventory-row-actions button {
+    min-width: 0;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .account-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .page-home .section .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+  }
+}
+
+@media (min-width: 900px) {
+  body {
+    padding-bottom: 0;
+    padding-left: 88px;
+  }
+
+  .bottom-nav {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    width: 88px;
+    grid-template-rows: repeat(5, 76px);
+    grid-template-columns: 1fr;
+    padding: 96px 8px 12px;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .app-header {
+    left: 88px;
+  }
+
+  .app-shell {
+    padding-top: 24px;
+  }
+
+  .bottom-nav button {
+    font-size: 12px;
+  }
+
+  .nav-icon {
+    width: 26px;
+    height: 26px;
+    max-width: 26px;
+    max-height: 26px;
+  }
+}

@@ -1,0 +1,225 @@
+/* ================================================================
+   03-components.css — 按鈕、卡片、格線、狀態與彈出視窗
+   ================================================================ */
+.card {
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.card h2,
+.card h3 {
+  margin-top: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 13px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.ghost-button {
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  font-weight: 750;
+}
+
+.primary-button {
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.secondary-button {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.danger-button {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.ghost-button {
+  padding: 8px;
+  background: transparent;
+  color: var(--brand);
+}
+
+.full {
+  width: 100%;
+}
+
+.compact {
+  min-height: 38px;
+  padding: 8px 11px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.back-button {
+  margin-bottom: 10px;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-weight: 750;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status.success {
+  background: #e7f5ec;
+  color: var(--success);
+}
+
+.status.warning {
+  background: #fff1d7;
+  color: var(--warning);
+}
+
+.status.danger {
+  background: #fde7e7;
+  color: var(--danger);
+}
+
+.progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9ede9;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand);
+  transition: width 0.25s;
+}
+
+.progress.warning > span {
+  background: var(--warning);
+}
+
+.progress.danger > span {
+  background: var(--danger);
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty {
+  padding: 34px 20px;
+  border: 1px dashed var(--line);
+  border-radius: 17px;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+dialog {
+  width: min(620px, calc(100% - 24px));
+  max-height: 90vh;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.25);
+}
+
+dialog::backdrop {
+  background: rgba(25, 35, 30, 0.52);
+}
+
+.dialog-card {
+  max-height: 90vh;
+  padding: 20px;
+  overflow: auto;
+}
+
+.dialog-card h2 {
+  margin-top: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  z-index: 60;
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: #22302a;
+  color: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 20px);
+  transition: 0.2s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.pull-refresh {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 50;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: var(--brand-dark);
+  box-shadow: var(--shadow);
+  color: #ffffff;
+  font-size: 13px;
+  transform: translate(-50%, -54px);
+  transition: 0.18s;
+}
+
+.pull-refresh.visible {
+  transform: translate(-50%, calc(10px + env(safe-area-inset-top)));
+}
