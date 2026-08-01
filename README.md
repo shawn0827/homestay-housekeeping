@@ -1,55 +1,81 @@
-# 民宿營運管理系統 v9.1.0
+# 民宿營運管理系統 v10.0.0
 
-## 本版修正
+v10 將介面樣式拆分成多個 CSS 模組，並把主要固定圖示改成可直接覆蓋的 SVG 檔案。
 
-1. 維修管理、收支管理、報表與 Google Drive 頁面都有「返回設定」。
-2. Google 帳號身分保存在 IndexedDB，重新開啟後仍顯示登入帳號。
-3. 使用者帳號頁新增「登出 Google 帳號」按鈕。
-4. 手機主頁的「＋新增訂房」固定在「今日營運」標題右側。
-5. 備品管理改為一項一列，單列顯示目前庫存、安全量、目標、累計耗用與進度。
-6. 備品修改視窗不再顯示「誤按可修改」提示。
+## 重要：既有資料不會被清空
 
-## Google 帳號與 Drive 權限
-
-- 姓名、Email 與頭像會保存在本機 IndexedDB，因此重新開啟後仍顯示登入。
-- Google Drive access token 不會永久寫入瀏覽器。
-- token 到期後，在同步時可能需要由 Google 續接授權。
-- 點「登出 Google 帳號」會清除本機身分、停用自動選取並撤銷目前 token。
-
-## 修改底部導覽 icon
-
-打開根目錄的 `index.html`，搜尋：
-
-```html
-<nav class="bottom-nav"
-```
-
-修改每個按鈕內的 `<span>`：
-
-```html
-<button data-route="home"><span>⌂</span>主頁</button>
-```
-
-例如改成：
-
-```html
-<button data-route="home"><span>🏠</span>主頁</button>
-```
-
-可修改的位置：
+v10 仍使用 v9 的 IndexedDB 名稱：
 
 ```text
-⌂  主頁
-▣  訂房
-✓  房務
-□  備品
-⚙  設定
+homestay_operation_v9
 ```
 
-## 上傳
+這是刻意保留，避免升級後原本的訂房、房務、備品與收支資料消失。
 
-請完整覆蓋 `index.html`、`styles.css`、`sw.js` 與整個 `js/` 資料夾。
+## 專案結構
 
-## 測試
+```text
+/
+├─ index.html
+├─ manifest.webmanifest
+├─ sw.js
+├─ css/
+│  ├─ 00-tokens.css
+│  ├─ 01-base.css
+│  ├─ 02-layout.css
+│  ├─ 03-components.css
+│  ├─ 04-dashboard.css
+│  ├─ 05-forms-lists.css
+│  ├─ 06-housekeeping.css
+│  ├─ 07-inventory.css
+│  ├─ 08-settings.css
+│  └─ 09-responsive.css
+├─ assets/icons/
+├─ icons/
+└─ js/
+```
 
-本版已完成 JavaScript 語法檢查，以及 Chromium 手機／電腦尺寸的路由與版面整合測試。詳細結果請看 `測試報告.txt`。
+## CSS 修改位置
+
+| 想修改的內容 | 檔案 |
+|---|---|
+| 品牌色、背景色、圓角 | `css/00-tokens.css` |
+| 全域文字與表單基本設定 | `css/01-base.css` |
+| Header、頁面寬度、底部導覽 | `css/02-layout.css` |
+| 按鈕、卡片、狀態、彈窗 | `css/03-components.css` |
+| 主頁 KPI、提醒、今日工作 | `css/04-dashboard.css` |
+| 訂房、收支、維修等表單與清單 | `css/05-forms-lists.css` |
+| 房務管理 | `css/06-housekeeping.css` |
+| 備品管理 | `css/07-inventory.css` |
+| 設定與帳號 | `css/08-settings.css` |
+| 手機、平板、電腦響應式規則 | `css/09-responsive.css` |
+
+## 圖示
+
+請閱讀：
+
+```text
+圖示更換指南.md
+```
+
+底部導覽圖示已固定為 24 × 24px，替換圖檔後不會再因原圖尺寸而變得巨大。
+
+## 上傳 GitHub
+
+1. 先在舊版下載 JSON 備份。
+2. 將 v10 壓縮檔解壓縮。
+3. 完整覆蓋 GitHub 根目錄。
+4. 刪除舊的 `styles.css`，v10 已改用 `css/` 資料夾。
+5. 確認 `assets/icons/` 與 `css/` 都已上傳。
+6. 等待 GitHub Pages 部署完成。
+7. 關閉主畫面 App 後重新開啟。
+
+## 快取提醒
+
+自行替換圖示或 CSS 後，修改 `sw.js`：
+
+```javascript
+const CACHE_VERSION = 'homestay-v10-0-1';
+```
+
+每次發布增加最後一碼，避免手機繼續使用舊檔。

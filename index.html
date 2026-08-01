@@ -8,19 +8,38 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="民宿營運">
   <title>民宿營運管理系統</title>
+
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css">
+
+  <!-- CSS 載入順序不可任意調換。 -->
+  <link rel="stylesheet" href="./css/00-tokens.css">
+  <link rel="stylesheet" href="./css/01-base.css">
+  <link rel="stylesheet" href="./css/02-layout.css">
+  <link rel="stylesheet" href="./css/03-components.css">
+  <link rel="stylesheet" href="./css/04-dashboard.css">
+  <link rel="stylesheet" href="./css/05-forms-lists.css">
+  <link rel="stylesheet" href="./css/06-housekeeping.css">
+  <link rel="stylesheet" href="./css/07-inventory.css">
+  <link rel="stylesheet" href="./css/08-settings.css">
+  <link rel="stylesheet" href="./css/09-responsive.css">
 </head>
 <body>
   <div id="pullRefresh" class="pull-refresh" aria-live="polite">下拉重新整理</div>
+
   <header class="app-header">
     <button id="homeBrand" class="brand-button" aria-label="回到主頁">
-      <span class="brand-mark">🏡</span>
-      <span><small>HOMESTAY OS</small><strong id="propertyTitle">我的民宿</strong></span>
+      <img class="brand-icon" src="./assets/icons/brand.svg" alt="">
+      <span class="brand-copy">
+        <small>HOMESTAY OS</small>
+        <strong id="propertyTitle">我的民宿</strong>
+      </span>
     </button>
+
     <button id="accountButton" class="account-button" aria-label="使用者帳號">
-      <span id="accountAvatar" class="account-avatar">👤</span>
+      <span id="accountAvatar" class="account-avatar">
+        <img class="account-default-icon" src="./assets/icons/account.svg" alt="">
+      </span>
       <span id="accountName">民宿主人</span>
     </button>
   </header>
@@ -28,20 +47,47 @@
   <main id="app" class="app-shell" tabindex="-1"></main>
 
   <!--
-    底部導覽 icon 修改位置：
-    直接更換每個 <span>...</span> 內的符號即可。
-    例如將「⌂」改成「🏠」。
+    更換底部圖示時，只要覆蓋 assets/icons 中的同名 SVG。
+    詳細檔名請看「圖示更換指南.md」。
   -->
   <nav class="bottom-nav" aria-label="主要功能">
-    <button data-route="home"><span>⌂</span>主頁</button>
-    <button data-route="bookings"><img src="icons/booking.svg">訂房</button>
-    <button data-route="housekeeping"><img src="icons/house-keeping.svg">房務</button>
-    <button data-route="inventory"><img src="icons/box.svg">備品</button>
-    <button data-route="settings"><img src="icons/setting.svg">設定</button>
+    <button data-route="home">
+      <img class="nav-icon" src="./assets/icons/nav-home.svg" alt="">
+      <span class="nav-label">主頁</span>
+    </button>
+    <button data-route="bookings">
+      <img class="nav-icon" src="./assets/icons/nav-bookings.svg" alt="">
+      <span class="nav-label">訂房</span>
+    </button>
+    <button data-route="housekeeping">
+      <img class="nav-icon" src="./assets/icons/nav-housekeeping.svg" alt="">
+      <span class="nav-label">房務</span>
+    </button>
+    <button data-route="inventory">
+      <img class="nav-icon" src="./assets/icons/nav-inventory.svg" alt="">
+      <span class="nav-label">備品</span>
+    </button>
+    <button data-route="settings">
+      <img class="nav-icon" src="./assets/icons/nav-settings.svg" alt="">
+      <span class="nav-label">設定</span>
+    </button>
   </nav>
 
-  <dialog id="formDialog"><form id="formDialogBody" method="dialog"></form></dialog>
-  <dialog id="confirmDialog"><form method="dialog" class="dialog-card"><h2 id="confirmTitle">確認</h2><p id="confirmMessage"></p><div class="dialog-actions"><button value="cancel" class="secondary-button">取消</button><button id="confirmOk" value="default" class="danger-button">確定</button></div></form></dialog>
+  <dialog id="formDialog">
+    <form id="formDialogBody" method="dialog"></form>
+  </dialog>
+
+  <dialog id="confirmDialog">
+    <form method="dialog" class="dialog-card">
+      <h2 id="confirmTitle">確認</h2>
+      <p id="confirmMessage"></p>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary-button">取消</button>
+        <button id="confirmOk" value="default" class="danger-button">確定</button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status"></div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
