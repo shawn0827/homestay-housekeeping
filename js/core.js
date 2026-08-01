@@ -3,7 +3,7 @@
    ================================================================ */
 'use strict';
 
-const APP_VERSION = '10.2.0';
+const APP_VERSION = '11.0.0';
 // 保留 v9 的資料庫名稱，避免升級 v10 後既有資料消失。
 const DB_NAME = 'homestay_operation_v9';
 const DB_VERSION = 1;
@@ -76,8 +76,26 @@ function defaultState() {
     settings: {
       propertyName: '我的民宿',
       userName: '民宿主人',
-      google: { clientId: '', folderName: '民宿營運管理系統備份', autoSync: true, folderId: '', backupFileId: '' },
-      account: { connected: false, name: '', email: '', picture: '', connectedAt: '' }
+      google: {
+        clientId: '',
+        folderName: '民宿營運管理系統備份',
+        autoSync: true,
+        folderId: '',
+        backupFileId: '',
+        lastSyncAt: '',
+        lastSyncFiles: { excel: null, json: null }
+      },
+      account: { connected: false, name: '', email: '', picture: '', connectedAt: '' },
+      shared: {
+        backendUrl: '',
+        googleClientId: '',
+        sessionToken: '',
+        revision: 0,
+        role: '',
+        lastServerSyncAt: '',
+        lastBackupAt: '',
+        lastBackupFiles: { excel: null, json: null }
+      }
     },
     areas: defaultAreas(),
     bookings: [],
@@ -124,9 +142,13 @@ function migrateState() {
   const defaults = defaultState();
   state.settings ||= defaults.settings;
   state.settings.account ||= defaults.settings.account;
+  state.settings.shared ||= defaults.settings.shared;
+  state.settings.shared.lastBackupFiles ||= { excel: null, json: null };
   state.settings.account.connected = Boolean(state.settings.account.connected || state.settings.account.email);
   state.settings.account.connectedAt ||= '';
   state.settings.google ||= defaults.settings.google;
+  state.settings.google.lastSyncAt ||= '';
+  state.settings.google.lastSyncFiles ||= { excel: null, json: null };
   state.areas ||= defaults.areas;
   state.bookings ||= [];
   state.bookings.forEach(booking => booking.checkInTime ||= '15:00');
@@ -143,15 +165,20 @@ function scheduleSave() {
   saveTimer = setTimeout(saveState, 80);
 }
 
-async function saveState() {
+async function saveState({ skipShared = false } = {}) {
   if (!state) return;
   const database = await openDatabase();
+
   await new Promise((resolve, reject) => {
     const transaction = database.transaction(STORE_NAME, 'readwrite');
     transaction.objectStore(STORE_NAME).put(state, STATE_KEY);
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error);
   });
+
+  if (!skipShared && typeof queueSharedStateSave === 'function') {
+    queueSharedStateSave();
+  }
 }
 
 function parseHash() {

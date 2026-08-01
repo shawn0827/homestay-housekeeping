@@ -47,74 +47,209 @@ function createWorkbook() {
 
   const workbook = XLSX.utils.book_new();
 
+  // --------------------------------------------------------------
+  // 1. 營運總覽
+  // --------------------------------------------------------------
+  const totalIncome = state.transactions
+    .filter(item => ['income', 'deposit'].includes(item.type))
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  const totalExpense = state.transactions
+    .filter(item => ['expense', 'refund'].includes(item.type))
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  const completedHousekeepingDays = Object.values(state.housekeepingRecords)
+    .filter(record => record.completedAt)
+    .length;
+
+  const overview = [
+    ['民宿營運管理系統', '完整紀錄'],
+    ['匯出時間', new Date().toLocaleString('zh-TW')],
+    ['系統版本', APP_VERSION],
+    ['民宿名稱', state.settings.propertyName],
+    ['使用者', state.settings.account?.name || state.settings.userName],
+    ['訂房筆數', state.bookings.length],
+    ['完成房務天數', completedHousekeepingDays],
+    ['備品項目', state.inventory.length],
+    ['維修紀錄', state.maintenance.length],
+    ['收入與訂金合計', totalIncome],
+    ['退款與支出合計', totalExpense],
+    ['累計淨額', totalIncome - totalExpense]
+  ];
+  appendWorksheet(workbook, overview, '營運總覽', [24, 28]);
+
+  // --------------------------------------------------------------
+  // 2. 訂房紀錄
+  // --------------------------------------------------------------
   const bookings = [
     ['姓名', '電話', '房間', '入住日期', '入住時間', '退房日期', '人數', '平台', '總房價', '訂金', '狀態', '備註'],
     ...state.bookings.map(item => [
-      item.guest,
-      item.phone,
+      item.guest || '',
+      item.phone || '',
       roomName(item.roomId),
-      item.checkIn,
-      item.checkInTime,
-      item.checkOut,
-      item.guests,
-      item.platform,
-      item.amount,
-      item.deposit,
-      item.status,
-      item.notes
+      item.checkIn || '',
+      item.checkInTime || '',
+      item.checkOut || '',
+      Number(item.guests || 0),
+      item.platform || '',
+      Number(item.amount || 0),
+      Number(item.deposit || 0),
+      item.status || '',
+      item.notes || ''
     ])
   ];
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(bookings), '訂房紀錄');
+  appendWorksheet(workbook, bookings, '訂房紀錄', [16, 16, 16, 13, 11, 13, 8, 18, 12, 12, 12, 30]);
 
-  const housekeeping = [['日期', '區域', '分類', '工作項目', '完成', '備註', '完成時間']];
+  // --------------------------------------------------------------
+  // 3. 房務逐項明細
+  // --------------------------------------------------------------
+  const housekeeping = [
+    ['日期', '區域', '分類', '工作項目', '完成', '區域備註', '區域儲存時間', '全日完成時間', '照片數量']
+  ];
+
   Object.entries(state.housekeepingRecords)
-    .sort()
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
     .forEach(([date, record]) => {
       state.areas.forEach(area => {
+        const areaRecord = record.areas?.[area.id] || {};
         area.items.forEach(item => {
           housekeeping.push([
             date,
             area.name,
             item.group,
             item.text,
-            record.areas[area.id]?.checks?.[item.id] ? '是' : '否',
-            record.areas[area.id]?.notes || '',
-            record.completedAt || ''
+            areaRecord.checks?.[item.id] ? '是' : '否',
+            areaRecord.notes || '',
+            areaRecord.savedAt || '',
+            record.completedAt || '',
+            areaRecord.photos?.length || 0
           ]);
         });
       });
     });
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(housekeeping), '房務明細');
 
-  const inventory = state.inventory.map(item => ({
-    品項: item.name,
-    目前數量: item.qty,
-    安全量: item.min,
-    庫存目標: item.target,
-    單位: item.unit,
-    累計耗用: item.usage
-  }));
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(inventory), '備品');
+  appendWorksheet(workbook, housekeeping, '房務明細', [13, 18, 16, 38, 8, 30, 22, 22, 10]);
 
-  const maintenance = state.maintenance.map(item => ({
-    日期: item.date,
-    區域: roomName(item.roomId),
-    項目: item.title,
-    狀態: item.status,
-    備註: item.notes
-  }));
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(maintenance), '維修');
+  // --------------------------------------------------------------
+  // 4. 房務照片索引
+  // 實際照片資料保存在 JSON；Excel 記錄照片數量供稽核。
+  // --------------------------------------------------------------
+  const photoIndex = [['日期', '區域', '照片數量', '說明']];
+  Object.entries(state.housekeepingRecords)
+    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+    .forEach(([date, record]) => {
+      state.areas.forEach(area => {
+        const count = record.areas?.[area.id]?.photos?.length || 0;
+        if (count > 0) {
+          photoIndex.push([
+            date,
+            area.name,
+            count,
+            '完整照片內容保存在同一次同步的 JSON 系統還原備份中'
+          ]);
+        }
+      });
+    });
+  appendWorksheet(workbook, photoIndex, '房務照片索引', [13, 18, 12, 48]);
 
-  const transactions = state.transactions.map(item => ({
-    日期: item.date,
-    類型: transactionTypeLabel(item.type),
-    金額: item.amount,
-    分類: item.category,
-    說明: item.description
-  }));
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(transactions), '收支');
+  // --------------------------------------------------------------
+  // 5. 備品
+  // --------------------------------------------------------------
+  const inventory = [
+    ['品項', '目前數量', '安全量', '庫存目標', '單位', '累計耗用', '庫存狀態'],
+    ...state.inventory.map(item => [
+      item.name,
+      Number(item.qty || 0),
+      Number(item.min || 0),
+      Number(item.target || 0),
+      item.unit,
+      Number(item.usage || 0),
+      Number(item.qty || 0) <= Number(item.min || 0) ? '需要補貨' : '庫存正常'
+    ])
+  ];
+  appendWorksheet(workbook, inventory, '備品', [18, 12, 12, 12, 10, 12, 14]);
+
+  // --------------------------------------------------------------
+  // 6. 維修
+  // --------------------------------------------------------------
+  const maintenance = [
+    ['日期', '區域', '項目', '狀態', '備註'],
+    ...state.maintenance.map(item => [
+      item.date || '',
+      roomName(item.roomId),
+      item.title || '',
+      item.status || '',
+      item.notes || ''
+    ])
+  ];
+  appendWorksheet(workbook, maintenance, '維修', [13, 18, 24, 14, 36]);
+
+  // --------------------------------------------------------------
+  // 7. 收支
+  // --------------------------------------------------------------
+  const transactions = [
+    ['日期', '類型', '金額', '分類', '說明'],
+    ...state.transactions.map(item => [
+      item.date || '',
+      transactionTypeLabel(item.type),
+      Number(item.amount || 0),
+      item.category || '',
+      item.description || ''
+    ])
+  ];
+  appendWorksheet(workbook, transactions, '收支', [13, 14, 14, 18, 36]);
+
+  // --------------------------------------------------------------
+  // 8. SOP 設定
+  // --------------------------------------------------------------
+  const sop = [['區域', '圖示', '分類', '工作項目', '項目 ID']];
+  state.areas.forEach(area => {
+    area.items.forEach(item => {
+      sop.push([
+        area.name,
+        area.icon || '',
+        item.group,
+        item.text,
+        item.id
+      ]);
+    });
+  });
+  appendWorksheet(workbook, sop, 'SOP設定', [18, 8, 18, 42, 24]);
 
   return workbook;
+}
+
+/** 加入工作表並設定欄寬。 */
+function appendWorksheet(workbook, rows, sheetName, columnWidths = []) {
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet['!cols'] = columnWidths.map(width => ({ wch: width }));
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+}
+
+/** 將完整 Excel 活頁簿轉成可上傳的 Blob。 */
+function createWorkbookBlob() {
+  const data = XLSX.write(createWorkbook(), {
+    bookType: 'xlsx',
+    type: 'array',
+    compression: true
+  });
+
+  return new Blob(
+    [data],
+    { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+  );
+}
+
+/** 建立完整系統 JSON 還原備份 Blob。 */
+function createJsonBackupBlob() {
+  const payload = JSON.stringify({
+    app: '民宿營運管理系統',
+    version: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: state
+  }, null, 2);
+
+  return new Blob([payload], { type: 'application/json' });
 }
 
 function exportExcel() {
@@ -126,14 +261,13 @@ function exportExcel() {
 }
 
 function exportJson() {
-  const payload = JSON.stringify({
-    app: '民宿營運管理系統',
-    version: APP_VERSION,
-    exportedAt: new Date().toISOString(),
-    data: state
-  }, null, 2);
-
-  downloadBlob(payload, `民宿營運完整備份_${today()}.json`, 'application/json');
+  const blob = createJsonBackupBlob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `民宿營運完整備份_${today()}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function downloadBlob(content, name, type) {

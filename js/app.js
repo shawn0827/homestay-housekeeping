@@ -67,6 +67,9 @@ function enablePullToRefresh() {
     tracking = false;
     if (distance >= 72) {
       indicator.textContent = '更新中…';
+      if (typeof refreshSharedData === 'function') {
+        await refreshSharedData();
+      }
       await refreshCurrentPage();
     }
     setTimeout(() => indicator.classList.remove('visible'), 350);
@@ -76,10 +79,19 @@ function enablePullToRefresh() {
 async function startApplication() {
   await loadState();
   bindGlobalEvents();
+
+  // 先使用已保存的 App Session 恢復登入，再下載多人共用的最新資料。
+  const sessionRestored = await restoreGoogleDriveSession().catch(() => false);
+  if (sessionRestored) {
+    await loadSharedStateFromServer().catch(console.warn);
+  }
+
   if (!location.hash) navigate('home', {}, { replace: true });
   else renderRoute();
-  initializePersistentGoogleAccount().catch(console.warn);
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => startApplication().catch(error => {
