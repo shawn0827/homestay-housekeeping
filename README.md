@@ -1,6 +1,6 @@
-# 民宿營運管理系統 v10.1.0
+# 民宿營運管理系統 v10.2.0
 
-v10.1 延續 CSS 與 JavaScript 模組化，並將民宿基本資料、Google 帳號與 Drive 設定整合成單一頁面。
+v10.2 將所有 PWA 與介面圖示統一放在根目錄 `icons/`。
 
 ## 重要：既有資料不會被清空
 
@@ -19,6 +19,7 @@ homestay_operation_v9
 ├─ index.html
 ├─ manifest.webmanifest
 ├─ sw.js
+├─ icons/
 ├─ css/
 │  ├─ 00-tokens.css
 │  ├─ 01-base.css
@@ -30,7 +31,6 @@ homestay_operation_v9
 │  ├─ 07-inventory.css
 │  ├─ 08-settings.css
 │  └─ 09-responsive.css
-├─ assets/icons/
 ├─ icons/
 └─ js/
 ```
@@ -66,7 +66,7 @@ homestay_operation_v9
 2. 將 v10 壓縮檔解壓縮。
 3. 完整覆蓋 GitHub 根目錄。
 4. 刪除舊的 `styles.css`，v10 已改用 `css/` 資料夾。
-5. 確認 `assets/icons/` 與 `css/` 都已上傳。
+5. 確認 `icons/` 與 `css/` 都已上傳。
 6. 等待 GitHub Pages 部署完成。
 7. 關閉主畫面 App 後重新開啟。
 
@@ -102,3 +102,27 @@ js/settings.js
 ```
 
 右上角使用者名稱或頭像也會直接開啟這個整合頁。
+
+
+## v10.2 統一圖示資料夾
+
+所有圖示都放在根目錄：
+
+```text
+icons/
+```
+
+包含：
+
+- `icon-192.png`、`icon-512.png`、`apple-touch-icon.png`
+- `nav-*.svg`
+- `settings-*.svg`
+- `alert-*.svg`
+- `brand.svg`
+- `account.svg`
+
+程式內的引用格式：
+
+```html
+<img src="./icons/nav-home.svg" alt="">
+```
