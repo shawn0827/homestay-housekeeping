@@ -1,6 +1,6 @@
-# 民宿營運管理系統 v10.0.0
+# 民宿營運管理系統 v10.1.0
 
-v10 將介面樣式拆分成多個 CSS 模組，並把主要固定圖示改成可直接覆蓋的 SVG 檔案。
+v10.1 延續 CSS 與 JavaScript 模組化，並將民宿基本資料、Google 帳號與 Drive 設定整合成單一頁面。
 
 ## 重要：既有資料不會被清空
 
@@ -43,7 +43,7 @@ homestay_operation_v9
 | 全域文字與表單基本設定 | `css/01-base.css` |
 | Header、頁面寬度、底部導覽 | `css/02-layout.css` |
 | 按鈕、卡片、狀態、彈窗 | `css/03-components.css` |
-| 主頁 KPI、提醒、今日工作 | `css/04-dashboard.css` |
+| 主頁 KPI、提醒與營運概況 | `css/04-dashboard.css` |
 | 訂房、收支、維修等表單與清單 | `css/05-forms-lists.css` |
 | 房務管理 | `css/06-housekeeping.css` |
 | 備品管理 | `css/07-inventory.css` |
@@ -75,7 +75,30 @@ homestay_operation_v9
 自行替換圖示或 CSS 後，修改 `sw.js`：
 
 ```javascript
-const CACHE_VERSION = 'homestay-v10-0-1';
+const CACHE_VERSION = 'homestay-v10-1-1';
 ```
 
 每次發布增加最後一碼，避免手機繼續使用舊檔。
+
+
+## v10.1 設定入口
+
+系統設定中的以下三項已合併：
+
+- 民宿基本資料
+- 使用者帳號
+- Google Drive
+
+新的入口名稱為：
+
+```text
+民宿基本資料與帳號
+```
+
+對應程式位置：
+
+```text
+js/settings.js
+```
+
+右上角使用者名稱或頭像也會直接開啟這個整合頁。
