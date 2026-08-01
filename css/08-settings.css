@@ -106,3 +106,33 @@
   display: block;
   font-size: 17px;
 }
+
+
+/* 民宿基本資料、帳號與 Google Drive 的整合頁。 */
+.settings-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-section {
+  min-width: 0;
+}
+
+.settings-section .section-title {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.settings-section-description {
+  margin: 5px 0 0;
+  line-height: 1.55;
+}
+
+.account-profile-copy {
+  min-width: 0;
+}
+
+.settings-security-note {
+  margin: 16px 0 0;
+  line-height: 1.65;
+}
