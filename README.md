@@ -1,32 +1,53 @@
-# 民宿營運管理系統 7.1.0（Phase 3 完整版）
+# 玖星吉民宿營運管理系統
 
-## 功能
-- 今日營運儀表板
-- 入住／退房／訂房管理
-- 退房後房務流程與照片紀錄
-- 房務 SOP 分層設定
-- 備品庫存、低庫存提醒與耗用統計
-- 維修紀錄與待辦提醒
-- 營收、訂金、退款與支出管理
-- 入住率、房間晚數、平台營收與備品耗用分析
-- IndexedDB 本機自動保存
-- Google Drive Excel＋JSON 備份
-- 完整營運 Excel 匯出
+目前版本：**7.3.0**
 
-## 更新 GitHub Pages
-1. 先從舊版下載 JSON 備份與 Excel。
-2. 解壓縮本版本。
-3. 將所有檔案與 icons 資料夾上傳到 repository 根目錄並覆蓋。
-4. Commit changes。
-5. Safari 開啟網站重新整理，完全關閉主畫面 App 後重開。
+這是一個可直接部署到 GitHub Pages、並可加入 iPhone／iPad 主畫面的民宿營運管理 PWA。
 
-## 注意
-這是一套單一裝置優先的 PWA。資料保存在該裝置的 IndexedDB；Google Drive 用於備份。純 GitHub Pages 無法在 App 關閉時背景同步。照片會壓縮後保存在本機備份中，長期大量拍照仍建議定期匯出後清理。
+## 專案結構
 
-## 7.1.0 介面調整
+```text
+/
+├── index.html
+├── app.js
+├── styles.css
+├── sw.js
+├── manifest.webmanifest
+├── README.md
+├── CHANGELOG.md
+├── 更新方式_請先閱讀.txt
+└── icons/
+    ├── apple-touch-icon.png
+    ├── icon-192.png
+    └── icon-512.png
+```
 
-- 點擊頁面上方的民宿名稱可回到主頁。
-- 底部導覽的「今日」改為「主頁」。
-- 主頁的提醒移到「今日工作」上方。
-- 備品管理新增庫存進度條與低庫存警示。
-- 進度條以安全量的兩倍作為 100% 參考值；低於或等於安全量時顯示紅色。
+GitHub repository 首頁必須直接看到 `index.html`，不要把整個專案再包在另一層資料夾中。
+
+## 最方便的更新方式
+
+1. 更新前先在系統內下載 JSON 完整備份與 Excel。
+2. 解壓縮新版 ZIP。
+3. 進入原本 GitHub repository。
+4. 點 `Add file → Upload files`。
+5. 將解壓縮資料夾內的所有檔案及 `icons` 資料夾一起拖入。
+6. 確認 GitHub 顯示相同檔名將被取代。
+7. 點 `Commit changes`。
+8. 等待 GitHub Pages 部署完成。
+9. Safari 開啟網站並重新整理。
+10. 完全關閉主畫面 App，再重新開啟。
+
+## App 圖示
+
+本版已使用玖星吉 Logo：
+
+- iOS／iPadOS：`icons/apple-touch-icon.png`
+- 其他 PWA：`icons/icon-192.png`、`icons/icon-512.png`
+
+換圖示後，需要移除舊主畫面圖示，再用 Safari 重新「加入主畫面」，才會顯示新圖示。
+
+## 資料保存
+
+- IndexedDB：本機日常資料
+- Google Drive：雲端 Excel 與 JSON 備份
+- GitHub：只放程式碼，不放營運資料

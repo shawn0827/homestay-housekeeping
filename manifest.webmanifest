@@ -1,23 +1,25 @@
 {
-  "name": "民宿營運管理系統",
-  "short_name": "民宿營運",
-  "description": "入住、退房、房務、備品、維修、營收、退款、統計、Excel與Google Drive。",
+  "name": "玖星吉民宿營運管理系統",
+  "short_name": "玖星吉",
+  "description": "玖星吉民宿入住、房務、備品、維修、營收與雲端備份管理系統。",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f3ed",
-  "theme_color": "#315f57",
+  "background_color": "#ffffff",
+  "theme_color": "#91AA6C",
   "icons": [
     {
       "src": "./icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
