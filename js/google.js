@@ -14,6 +14,8 @@ let googleAccessToken = '';
 let googleTokenExpiresAt = 0;
 let googleTokenClient = null;
 let googleIdentityInitialized = false;
+let googleSessionRestorePromise = null;
+let googleSilentReconnectAttempted = false;
 
 /** 是否有可用的 Drive access token。 */
 function googleConnected() {
@@ -71,8 +73,11 @@ async function handleGoogleIdentityCredential(response) {
   const profile = decodeGoogleCredential(response.credential);
   if (!profile) return;
   await rememberGoogleAccount(profile);
-  if (currentRoute.name === 'settings' && currentRoute.params.page === 'account') {
-    renderAccountSettings();
+  if (
+    currentRoute.name === 'settings'
+    && ['profile', 'basic', 'account', 'google'].includes(currentRoute.params.page)
+  ) {
+    renderProfileSettings();
   }
 }
 
@@ -98,16 +103,34 @@ async function initializePersistentGoogleAccount() {
   google.accounts.id.prompt();
 }
 
-/** 取得 Drive 授權並保存帳號資料。 */
-async function connectGoogle({ prompt = 'consent' } = {}) {
+/**
+ * 取得 Google Drive access token。
+ *
+ * prompt:
+ * - 'consent'：第一次連接或需要使用者重新同意。
+ * - ''：背景嘗試無提示續接。
+ *
+ * silent:
+ * - true 時不顯示錯誤訊息，也不強制重新渲染頁面。
+ */
+async function connectGoogle({
+  prompt = 'consent',
+  silent = false,
+  refreshView = true
+} = {}) {
   const clientId = state.settings.google.clientId;
+
   if (!clientId) {
-    showToast('請先在「民宿基本資料與帳號」輸入 Client ID');
+    if (!silent) {
+      showToast('請先在「民宿基本資料與帳號」輸入 Client ID');
+    }
     return false;
   }
 
+  if (googleConnected()) return true;
+
   if (!(await waitForGoogleLibrary()) || !window.google?.accounts?.oauth2) {
-    showToast('Google 元件尚未載入');
+    if (!silent) showToast('Google 元件尚未載入');
     return false;
   }
 
@@ -118,20 +141,34 @@ async function connectGoogle({ prompt = 'consent' } = {}) {
         scope: GOOGLE_SCOPES,
         callback: async response => {
           if (response.error) {
-            reject(new Error(response.error_description || response.error));
+            reject(new Error(
+              response.error_description
+              || response.error
+              || 'Google 授權未完成'
+            ));
             return;
           }
 
           googleAccessToken = response.access_token;
-          googleTokenExpiresAt = Date.now() + (Number(response.expires_in || 3600) - 60) * 1000;
+          googleTokenExpiresAt =
+            Date.now() + (Number(response.expires_in || 3600) - 60) * 1000;
 
           try {
-            const profile = await googleFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+            const profile = await googleFetch(
+              'https://www.googleapis.com/oauth2/v3/userinfo'
+            );
             await rememberGoogleAccount(profile);
             resolve();
           } catch (error) {
             reject(error);
           }
+        },
+        error_callback: error => {
+          reject(new Error(
+            error?.message
+            || error?.type
+            || 'Google 授權視窗無法完成'
+          ));
         }
       });
 
@@ -140,12 +177,51 @@ async function connectGoogle({ prompt = 'consent' } = {}) {
 
     googleIdentityInitialized = false;
     initializePersistentGoogleAccount().catch(console.warn);
-    renderRoute();
+
+    if (refreshView) {
+      renderRoute();
+    } else {
+      updateHeader();
+    }
+
     return true;
   } catch (error) {
-    showToast(error.message);
+    // 無提示續接失敗屬正常情況，留待使用者真正同步時再互動授權。
+    if (!silent) showToast(error.message);
     return false;
   }
+}
+
+/**
+ * App 啟動或重新整理後，背景嘗試恢復 Google Drive 工作階段。
+ *
+ * 帳號姓名、Email 與頭像由 IndexedDB 立即恢復；
+ * Drive access token 則使用 prompt:'' 嘗試重新取得。
+ * Safari 或 Google 若要求使用者互動，這裡會安靜失敗，
+ * 不會跳出錯誤或登入視窗。
+ */
+async function restoreGoogleDriveSession() {
+  if (googleConnected()) return true;
+  if (!googleAccountRemembered()) return false;
+  if (!state.settings.google.clientId) return false;
+
+  if (googleSessionRestorePromise) {
+    return googleSessionRestorePromise;
+  }
+
+  // 同一次頁面生命週期只自動嘗試一次，避免重複請求。
+  if (googleSilentReconnectAttempted) return false;
+  googleSilentReconnectAttempted = true;
+
+  googleSessionRestorePromise = connectGoogle({
+    prompt: '',
+    silent: true,
+    refreshView: false
+  }).finally(() => {
+    googleSessionRestorePromise = null;
+  });
+
+  return googleSessionRestorePromise;
 }
 
 /**
@@ -168,6 +244,8 @@ async function disconnectGoogle() {
   googleTokenExpiresAt = 0;
   googleTokenClient = null;
   googleIdentityInitialized = false;
+  googleSessionRestorePromise = null;
+  googleSilentReconnectAttempted = false;
 
   state.settings.account = {
     connected: false,
@@ -234,58 +312,227 @@ async function ensureGoogleFolder() {
   return config.folderId;
 }
 
-/** 將完整系統 JSON 備份同步到 Google Drive。 */
-async function syncGoogleDrive({ silent = false } = {}) {
+/**
+ * 尋找指定備份資料夾中的同名檔案。
+ */
+async function findGoogleDriveFile(folderId, name) {
+  const escapedName = name.replaceAll("'", "\\'");
+  const query = encodeURIComponent(
+    `name='${escapedName}' and '${folderId}' in parents and trashed=false`
+  );
+
+  const result = await googleFetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}` +
+    '&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)&spaces=drive'
+  );
+
+  return result.files?.[0] || null;
+}
+
+/**
+ * 建立 Google Drive 檔案的 metadata。
+ * 檔案內容會在下一步以 uploadType=media 上傳。
+ */
+async function createGoogleDriveFileMetadata(folderId, name, mimeType) {
+  return googleFetch(
+    'https://www.googleapis.com/drive/v3/files' +
+    '?fields=id,name,mimeType,size,modifiedTime,webViewLink',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        parents: [folderId],
+        mimeType
+      })
+    }
+  );
+}
+
+/**
+ * 建立或更新 Google Drive 中的檔案。
+ * 回傳 Google Drive 實際檔案 metadata，供同步後驗證。
+ */
+async function upsertGoogleDriveFile(folderId, name, blob, mimeType) {
+  let file = await findGoogleDriveFile(folderId, name);
+
+  if (!file) {
+    file = await createGoogleDriveFileMetadata(folderId, name, mimeType);
+  }
+
+  await googleFetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${file.id}` +
+    '?uploadType=media&fields=id,name,mimeType,size,modifiedTime,webViewLink',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': mimeType },
+      body: blob
+    }
+  );
+
+  // 上傳後重新讀取 metadata，確認檔名、格式與檔案大小。
+  const verified = await googleFetch(
+    `https://www.googleapis.com/drive/v3/files/${file.id}` +
+    '?fields=id,name,mimeType,size,modifiedTime,webViewLink'
+  );
+
+  if (verified.name !== name) {
+    throw new Error(`雲端檔名驗證失敗：${name}`);
+  }
+
+  if (verified.mimeType !== mimeType) {
+    throw new Error(`雲端檔案格式驗證失敗：${name}`);
+  }
+
+  if (Number(verified.size || 0) <= 0) {
+    throw new Error(`雲端檔案內容為空：${name}`);
+  }
+
+  return verified;
+}
+
+/**
+ * 從 Google Drive 下載 JSON 完整還原備份。
+ */
+async function downloadGoogleJsonBackup() {
+  const folderId = await ensureGoogleFolder();
+  const name = '民宿營運_系統還原備份.json';
+  const file = await findGoogleDriveFile(folderId, name);
+
+  if (!file) {
+    throw new Error('Google Drive 中找不到系統還原備份');
+  }
+
+  const response = await googleFetch(
+    `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`
+  );
+
+  return response.json();
+}
+
+/**
+ * 從 Google Drive 還原完整系統 JSON。
+ */
+async function restoreGoogleDriveBackup() {
   try {
+    if (!googleConnected() && googleAccountRemembered()) {
+      await restoreGoogleDriveSession();
+    }
+
     if (!googleConnected()) {
-      const connected = await connectGoogle({ prompt: googleAccountRemembered() ? '' : 'consent' });
+      const connected = await connectGoogle({
+        prompt: 'consent',
+        silent: false,
+        refreshView: false
+      });
       if (!connected || !googleConnected()) return;
     }
 
-    const folderId = await ensureGoogleFolder();
-    const payload = JSON.stringify({
-      app: '民宿營運管理系統',
-      version: APP_VERSION,
-      exportedAt: new Date().toISOString(),
-      data: state
-    }, null, 2);
-
-    const name = '民宿營運_系統還原備份.json';
-    const query = encodeURIComponent(
-      `name='${name}' and '${folderId}' in parents and trashed=false`
+    const confirmed = await confirmAction(
+      '從 Google Drive 還原',
+      '還原會覆蓋目前裝置內的資料，確定繼續嗎？'
     );
+    if (!confirmed) return;
 
-    const found = await googleFetch(
-      `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)&spaces=drive`
-    );
+    const payload = await downloadGoogleJsonBackup();
+    const incoming = payload.data || payload;
 
-    const boundary = `homestay_${Date.now()}`;
-    const metadata = found.files?.[0] ? {} : { name, parents: [folderId] };
-    const body = [
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      JSON.stringify(metadata),
-      `--${boundary}`,
-      'Content-Type: application/json',
-      '',
-      payload,
-      `--${boundary}--`
-    ].join('\r\n');
+    if (
+      !incoming.settings
+      || !Array.isArray(incoming.bookings)
+      || !incoming.housekeepingRecords
+      || !Array.isArray(incoming.inventory)
+    ) {
+      throw new Error('Google Drive 備份格式不完整');
+    }
 
-    const fileId = found.files?.[0]?.id;
-    const uploadUrl = fileId
-      ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    state = incoming;
+    migrateState();
+    await saveState();
 
-    await googleFetch(uploadUrl, {
-      method: fileId ? 'PATCH' : 'POST',
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body
-    });
-
-    if (!silent) showToast('Google Drive 同步完成');
+    showToast('Google Drive 備份已還原');
+    navigate('home');
   } catch (error) {
     showToast(error.message);
+  }
+}
+
+/**
+ * 同步完整系統備份到 Google Drive。
+ *
+ * 每次同步一定包含：
+ * 1. 民宿營運_完整紀錄.xlsx（人工查看、篩選、列印）
+ * 2. 民宿營運_系統還原備份.json（完整系統還原）
+ *
+ * 上傳後會重新查詢 metadata，確認兩個檔案都存在且不是空檔。
+ */
+async function syncGoogleDrive({ silent = false } = {}) {
+  try {
+    if (!googleConnected() && googleAccountRemembered()) {
+      await restoreGoogleDriveSession();
+    }
+
+    if (!googleConnected()) {
+      const connected = await connectGoogle({
+        prompt: 'consent',
+        silent: false,
+        refreshView: false
+      });
+      if (!connected || !googleConnected()) return false;
+    }
+
+    if (!window.XLSX) {
+      throw new Error('Excel 元件尚未載入，無法建立雲端 Excel');
+    }
+
+    const folderId = await ensureGoogleFolder();
+
+    const excelName = '民宿營運_完整紀錄.xlsx';
+    const jsonName = '民宿營運_系統還原備份.json';
+
+    const excelFile = await upsertGoogleDriveFile(
+      folderId,
+      excelName,
+      createWorkbookBlob(),
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    const jsonFile = await upsertGoogleDriveFile(
+      folderId,
+      jsonName,
+      createJsonBackupBlob(),
+      'application/json'
+    );
+
+    state.settings.google.lastSyncAt = new Date().toISOString();
+    state.settings.google.lastSyncFiles = {
+      excel: {
+        id: excelFile.id,
+        name: excelFile.name,
+        mimeType: excelFile.mimeType,
+        size: Number(excelFile.size || 0),
+        modifiedTime: excelFile.modifiedTime || '',
+        webViewLink: excelFile.webViewLink || ''
+      },
+      json: {
+        id: jsonFile.id,
+        name: jsonFile.name,
+        mimeType: jsonFile.mimeType,
+        size: Number(jsonFile.size || 0),
+        modifiedTime: jsonFile.modifiedTime || '',
+        webViewLink: jsonFile.webViewLink || ''
+      }
+    };
+
+    await saveState();
+
+    if (!silent) {
+      showToast('Google Drive 已完成 Excel 與 JSON 雙重備份');
+    }
+
+    return true;
+  } catch (error) {
+    showToast(`Google Drive 備份失敗：${error.message}`);
+    return false;
   }
 }

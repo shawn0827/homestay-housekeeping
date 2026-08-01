@@ -106,141 +106,178 @@ function bindSettingsBack() {
  */
 function renderProfileSettings() {
   const account = state.settings.account;
-  const config = sharedConfig();
-  const signedIn = googleConnected();
-  const roleLabels = { admin: '管理員', editor: '可編輯', viewer: '僅檢視' };
+  const remembered = googleAccountRemembered();
+  const driveStatus = googleConnected()
+    ? 'Drive 已連線'
+    : remembered
+      ? '背景續接中／需要時授權'
+      : '尚未連接';
 
   $('#app').innerHTML = `
     <section class="page page-profile-settings">
       ${settingsBack()}
       ${pageHeader({
-        eyebrow: 'PROPERTY & SHARED ACCOUNT',
+        eyebrow: 'PROPERTY & ACCOUNT',
         title: '民宿基本資料與帳號',
-        subtitle: '多人使用同一份資料，備份固定存到主帳 Google Drive'
+        subtitle: '集中管理民宿名稱、使用者、Google 帳號與雲端備份'
       })}
 
       <div class="settings-stack">
         <section class="card settings-section">
-          <h2>民宿基本資料</h2>
+          <div class="section-title">
+            <div>
+              <h2>民宿基本資料</h2>
+              <p class="muted settings-section-description">
+                顯示於系統標題及未連接 Google 帳號時的使用者名稱。
+              </p>
+            </div>
+          </div>
+
           <div class="form-grid">
             <label class="field">
               民宿名稱
-              <input id="propertyNameInput" value="${escapeHtml(state.settings.propertyName)}">
+              <input
+                id="propertyNameInput"
+                value="${escapeHtml(state.settings.propertyName)}"
+                autocomplete="organization"
+              >
             </label>
+
             <label class="field">
-              本機顯示名稱
-              <input id="userNameInput" value="${escapeHtml(state.settings.userName)}">
+              使用者名稱
+              <input
+                id="userNameInput"
+                value="${escapeHtml(state.settings.userName)}"
+                autocomplete="name"
+              >
             </label>
           </div>
         </section>
 
         <section class="card settings-section">
-          <h2>共用後端設定</h2>
-          <p class="muted settings-section-description">
-            主帳與副帳都填相同的後端網址和 Google Client ID。
-          </p>
-          <div class="form-grid">
-            <label class="field wide">
-              Cloudflare Worker 後端網址
-              <input
-                id="sharedBackendUrl"
-                value="${escapeHtml(config.backendUrl || '')}"
-                placeholder="https://homestay-api.你的帳號.workers.dev"
-                autocomplete="url"
-              >
-            </label>
-            <label class="field wide">
-              Google OAuth Client ID
-              <input
-                id="sharedGoogleClientId"
-                value="${escapeHtml(config.googleClientId || '')}"
-                placeholder="xxxx.apps.googleusercontent.com"
-                autocomplete="off"
-              >
-            </label>
+          <div class="section-title">
+            <div>
+              <h2>Google 帳號</h2>
+              <p class="muted settings-section-description">
+                連接後會在右上角顯示 Google 姓名、Email 與頭像。
+              </p>
+            </div>
           </div>
-          <button class="primary-button section" data-save-shared-settings>儲存連線設定</button>
-        </section>
 
-        <section class="card settings-section">
-          <h2>登入帳號</h2>
           <div class="account-profile">
             <div class="account-profile-avatar">
               ${account.picture
                 ? `<img src="${escapeHtml(account.picture)}" alt="Google 帳號頭像">`
                 : '<img class="account-default-icon" src="./icons/account.svg" alt="">'}
             </div>
+
             <div class="account-profile-copy">
-              <div class="list-title">${escapeHtml(account.name || state.settings.userName)}</div>
-              <div class="list-meta">${escapeHtml(account.email || '尚未登入')}</div>
+              <div class="list-title">
+                ${escapeHtml(account.name || state.settings.userName)}
+              </div>
+              <div class="list-meta">
+                ${escapeHtml(account.email || '尚未連接 Google 帳號')}
+              </div>
             </div>
           </div>
 
           <div class="account-status-grid section">
             <div>
-              <span>登入狀態</span>
-              <strong>${signedIn ? '已登入' : '未登入'}</strong>
+              <span>帳號狀態</span>
+              <strong>${remembered ? '已連接' : '未連接'}</strong>
             </div>
             <div>
-              <span>權限</span>
-              <strong>${escapeHtml(roleLabels[config.role] || '—')}</strong>
-            </div>
-            <div>
-              <span>共用資料版本</span>
-              <strong>${Number(config.revision || 0)}</strong>
-            </div>
-            <div>
-              <span>最後資料同步</span>
-              <strong>${config.lastServerSyncAt
-                ? new Date(config.lastServerSyncAt).toLocaleString('zh-TW')
-                : '尚未同步'}</strong>
+              <span>Google Drive</span>
+              <strong>${escapeHtml(driveStatus)}</strong>
             </div>
           </div>
 
           <div class="button-row section">
             <button class="primary-button" data-connect-google>
-              ${signedIn ? '切換／重新登入帳號' : '使用 Google 帳號登入'}
+              ${remembered ? '重新授權 Google Drive' : '連接 Google 帳號'}
             </button>
-            ${signedIn
-              ? '<button class="danger-button" data-disconnect-google>登出</button>'
+            ${remembered
+              ? '<button class="danger-button" data-disconnect-google>登出並斷開連接</button>'
               : ''}
           </div>
         </section>
 
         <section class="card settings-section">
-          <h2>主帳 Google Drive 備份</h2>
-          <p class="muted settings-section-description">
-            不論哪個副帳操作，Excel 與 JSON 都由後端固定寫入主帳 Drive。
-          </p>
+          <div class="section-title">
+            <div>
+              <h2>Google Drive 備份</h2>
+              <p class="muted settings-section-description">
+                設定 OAuth Client ID、備份資料夾及自動同步。
+              </p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field wide">
+              OAuth Client ID
+              <input
+                id="googleClientId"
+                value="${escapeHtml(state.settings.google.clientId)}"
+                placeholder="xxxx.apps.googleusercontent.com"
+                autocomplete="off"
+              >
+            </label>
+
+            <label class="field wide">
+              備份資料夾名稱
+              <input
+                id="googleFolderName"
+                value="${escapeHtml(state.settings.google.folderName)}"
+              >
+            </label>
+          </div>
+
+          <label class="check-row section">
+            <input
+              id="googleAutoSync"
+              type="checkbox"
+              ${state.settings.google.autoSync ? 'checked' : ''}
+            >
+            <span>完成房務後自動同步</span>
+          </label>
 
           <div class="cloud-backup-summary section">
             <div class="cloud-backup-item">
-              <span>Excel 紀錄</span>
-              <strong>${config.lastBackupFiles?.excel?.size
-                ? `${Math.ceil(config.lastBackupFiles.excel.size / 1024)} KB`
-                : '尚未備份'}</strong>
+              <span>Excel 營運紀錄</span>
+              <strong>
+                ${state.settings.google.lastSyncFiles?.excel?.size
+                  ? `${Math.ceil(state.settings.google.lastSyncFiles.excel.size / 1024)} KB`
+                  : '尚未同步'}
+              </strong>
             </div>
             <div class="cloud-backup-item">
-              <span>JSON 還原檔</span>
-              <strong>${config.lastBackupFiles?.json?.size
-                ? `${Math.ceil(config.lastBackupFiles.json.size / 1024)} KB`
-                : '尚未備份'}</strong>
+              <span>JSON 系統還原</span>
+              <strong>
+                ${state.settings.google.lastSyncFiles?.json?.size
+                  ? `${Math.ceil(state.settings.google.lastSyncFiles.json.size / 1024)} KB`
+                  : '尚未同步'}
+              </strong>
             </div>
             <div class="cloud-backup-item">
-              <span>最後備份</span>
-              <strong>${config.lastBackupAt
-                ? new Date(config.lastBackupAt).toLocaleString('zh-TW')
-                : '尚未備份'}</strong>
+              <span>最後同步</span>
+              <strong>
+                ${state.settings.google.lastSyncAt
+                  ? new Date(state.settings.google.lastSyncAt).toLocaleString('zh-TW')
+                  : '尚未同步'}
+              </strong>
             </div>
           </div>
 
           <div class="button-row section">
-            <button class="secondary-button" data-refresh-shared>取得共用最新資料</button>
-            <button class="primary-button" data-sync-google>備份 Excel＋JSON 到主帳</button>
-            ${config.role === 'admin'
-              ? '<button class="secondary-button" data-restore-google>從主帳 Drive 還原</button>'
-              : ''}
+            <button class="primary-button" data-save-profile>儲存全部設定</button>
+            <button class="secondary-button" data-sync-google>立即同步 Excel＋JSON</button>
+            <button class="secondary-button" data-restore-google>從雲端還原 JSON</button>
           </div>
+
+          <p class="muted settings-security-note">
+            帳號資料會保留在本機。重新開啟後，系統會先在背景嘗試無提示續接
+            Google Drive；若 Safari 或 Google 要求互動，只有按下同步時才會顯示授權畫面。
+          </p>
         </section>
       </div>
     </section>
@@ -248,69 +285,76 @@ function renderProfileSettings() {
 
   bindSettingsBack();
 
-  $('[data-save-shared-settings]').onclick = saveSharedSettings;
+  $('[data-save-profile]').onclick = () => saveProfileSettings();
+
   $('[data-connect-google]').onclick = async () => {
-    const saved = await saveSharedSettings({ notify: false });
+    const saved = await saveProfileSettings({ notify: false });
     if (saved) await connectGoogle();
   };
 
-  const logout = $('[data-disconnect-google]');
-  if (logout) logout.onclick = disconnectGoogle;
-
-  $('[data-refresh-shared]').onclick = async () => {
-    const loaded = await loadSharedStateFromServer();
-    if (loaded) {
-      renderProfileSettings();
-      showToast('已取得共用最新資料');
+  $('[data-sync-google]').onclick = async () => {
+    const saved = await saveProfileSettings({ notify: false });
+    if (saved) {
+      const synced = await syncGoogleDrive();
+      if (synced) renderProfileSettings();
     }
   };
 
-  $('[data-sync-google]').onclick = async () => {
-    const ok = await syncGoogleDrive();
-    if (ok) renderProfileSettings();
-  };
+  $('[data-restore-google]').onclick = restoreGoogleDriveBackup;
 
-  const restore = $('[data-restore-google]');
-  if (restore) restore.onclick = restoreGoogleDriveBackup;
+  const logoutButton = $('[data-disconnect-google]');
+  if (logoutButton) logoutButton.onclick = disconnectGoogle;
 }
 
-/** 儲存本機的共用後端設定。 */
-async function saveSharedSettings({ notify = true } = {}) {
-  state.settings.propertyName =
-    $('#propertyNameInput').value.trim() || '我的民宿';
-  state.settings.userName =
-    $('#userNameInput').value.trim() || '民宿主人';
-
-  const config = sharedConfig();
-  const nextBackendUrl = $('#sharedBackendUrl').value.trim().replace(/\/+$/, '');
-  const nextClientId = $('#sharedGoogleClientId').value.trim();
+/** 儲存整合頁上的民宿基本資料與 Google Drive 設定。 */
+async function saveProfileSettings({ notify = true } = {}) {
+  const propertyNameInput = $('#propertyNameInput');
+  const userNameInput = $('#userNameInput');
+  const googleClientIdInput = $('#googleClientId');
+  const googleFolderNameInput = $('#googleFolderName');
+  const googleAutoSyncInput = $('#googleAutoSync');
 
   if (
-    (config.backendUrl && config.backendUrl !== nextBackendUrl)
-    || (config.googleClientId && config.googleClientId !== nextClientId)
+    !propertyNameInput ||
+    !userNameInput ||
+    !googleClientIdInput ||
+    !googleFolderNameInput ||
+    !googleAutoSyncInput
   ) {
-    config.sessionToken = '';
-    config.role = '';
-    state.settings.account = {
-      connected: false,
-      name: '',
-      email: '',
-      picture: '',
-      connectedAt: ''
-    };
+    showToast('設定欄位載入失敗，請重新整理後再試');
+    return false;
   }
 
-  config.backendUrl = nextBackendUrl;
-  config.googleClientId = nextClientId;
+  const newClientId = googleClientIdInput.value.trim();
+  const clientIdChanged = state.settings.google.clientId !== newClientId;
 
-  await saveState({ skipShared: true });
+  state.settings.propertyName =
+    propertyNameInput.value.trim() || '我的民宿';
+  state.settings.userName =
+    userNameInput.value.trim() || '民宿主人';
+  state.settings.google.clientId = newClientId;
+  state.settings.google.folderName =
+    googleFolderNameInput.value.trim() || '民宿營運管理系統備份';
+  state.settings.google.autoSync = googleAutoSyncInput.checked;
+
+  // Client ID 改變時，舊的 Drive 資料夾與授權狀態不能沿用。
+  if (clientIdChanged) {
+    state.settings.google.folderId = '';
+    state.settings.google.backupFileId = '';
+    googleAccessToken = '';
+    googleTokenExpiresAt = 0;
+    googleIdentityInitialized = false;
+  }
+
+  await saveState();
   updateHeader();
+  initializePersistentGoogleAccount().catch(console.warn);
 
-  if (notify) showToast('連線設定已儲存');
+  if (notify) showToast('民宿基本資料與帳號設定已儲存');
   return true;
 }
 
-/** 舊網址相容。 */
+/** 保留舊函式名稱，避免舊網址或舊程式呼叫失效。 */
 function renderBasicSettings() {
   return renderProfileSettings();
 }
