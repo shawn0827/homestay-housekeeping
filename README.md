@@ -1,128 +1,32 @@
-# 民宿營運管理系統 v10.2.0
+# 民宿營運管理系統 v11.0.0
 
-v10.2 將所有 PWA 與介面圖示統一放在根目錄 `icons/`。
+v11 支援個人 Gmail 主帳與多個副帳共同使用。
 
-## 重要：既有資料不會被清空
+## 核心功能
 
-v10 仍使用 v9 的 IndexedDB 名稱：
-
-```text
-homestay_operation_v9
-```
-
-這是刻意保留，避免升級後原本的訂房、房務、備品與收支資料消失。
+- 每位使用者以自己的 Google 帳號登入
+- admin／editor／viewer 權限
+- Cloudflare D1 保存所有人共用資料
+- 主帳 refresh token 只存在 Cloudflare Secrets
+- 所有 Excel／JSON 固定寫入主帳 Google Drive
+- App Session 可保存 30 天，重新整理不需重新登入
+- 樂觀鎖定避免多人同時修改時靜默覆蓋
+- 保留 IndexedDB 離線本機資料
 
 ## 專案結構
 
 ```text
 /
 ├─ index.html
-├─ manifest.webmanifest
-├─ sw.js
-├─ icons/
 ├─ css/
-│  ├─ 00-tokens.css
-│  ├─ 01-base.css
-│  ├─ 02-layout.css
-│  ├─ 03-components.css
-│  ├─ 04-dashboard.css
-│  ├─ 05-forms-lists.css
-│  ├─ 06-housekeeping.css
-│  ├─ 07-inventory.css
-│  ├─ 08-settings.css
-│  └─ 09-responsive.css
 ├─ icons/
-└─ js/
+├─ js/
+├─ backend/
+│  ├─ src/worker.js
+│  ├─ schema.sql
+│  ├─ package.json
+│  └─ wrangler.toml
+└─ 多人共用主帳設定教學.md
 ```
 
-## CSS 修改位置
-
-| 想修改的內容 | 檔案 |
-|---|---|
-| 品牌色、背景色、圓角 | `css/00-tokens.css` |
-| 全域文字與表單基本設定 | `css/01-base.css` |
-| Header、頁面寬度、底部導覽 | `css/02-layout.css` |
-| 按鈕、卡片、狀態、彈窗 | `css/03-components.css` |
-| 主頁 KPI、提醒與營運概況 | `css/04-dashboard.css` |
-| 訂房、收支、維修等表單與清單 | `css/05-forms-lists.css` |
-| 房務管理 | `css/06-housekeeping.css` |
-| 備品管理 | `css/07-inventory.css` |
-| 設定與帳號 | `css/08-settings.css` |
-| 手機、平板、電腦響應式規則 | `css/09-responsive.css` |
-
-## 圖示
-
-請閱讀：
-
-```text
-圖示更換指南.md
-```
-
-底部導覽圖示已固定為 24 × 24px，替換圖檔後不會再因原圖尺寸而變得巨大。
-
-## 上傳 GitHub
-
-1. 先在舊版下載 JSON 備份。
-2. 將 v10 壓縮檔解壓縮。
-3. 完整覆蓋 GitHub 根目錄。
-4. 刪除舊的 `styles.css`，v10 已改用 `css/` 資料夾。
-5. 確認 `icons/` 與 `css/` 都已上傳。
-6. 等待 GitHub Pages 部署完成。
-7. 關閉主畫面 App 後重新開啟。
-
-## 快取提醒
-
-自行替換圖示或 CSS 後，修改 `sw.js`：
-
-```javascript
-const CACHE_VERSION = 'homestay-v10-1-1';
-```
-
-每次發布增加最後一碼，避免手機繼續使用舊檔。
-
-
-## v10.1 設定入口
-
-系統設定中的以下三項已合併：
-
-- 民宿基本資料
-- 使用者帳號
-- Google Drive
-
-新的入口名稱為：
-
-```text
-民宿基本資料與帳號
-```
-
-對應程式位置：
-
-```text
-js/settings.js
-```
-
-右上角使用者名稱或頭像也會直接開啟這個整合頁。
-
-
-## v10.2 統一圖示資料夾
-
-所有圖示都放在根目錄：
-
-```text
-icons/
-```
-
-包含：
-
-- `icon-192.png`、`icon-512.png`、`apple-touch-icon.png`
-- `nav-*.svg`
-- `settings-*.svg`
-- `alert-*.svg`
-- `brand.svg`
-- `account.svg`
-
-程式內的引用格式：
-
-```html
-<img src="./icons/nav-home.svg" alt="">
-```
+請先閱讀 `多人共用主帳設定教學.md`。
