@@ -1,17 +1,5 @@
-/**
- * 模組：維修管理
- * 用途：設備故障、待處理與已完成維修紀錄。
- *
- * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
- */
-
-// ===== 維修列表 =====
-function renderMaintenance() {
-  $('maintenanceList').innerHTML=state.maintenance.sort((a,b)=>b.date.localeCompare(a.date)).map(m=>`<article class="list-item"><div class="list-head"><div><strong>${esc(m.title)}</strong><div class="muted">${m.date}・${esc(roomName(m.roomId))}</div></div><span class="tag">${m.status==='done'?'已完成':'待處理'}</span></div><p>${esc(m.notes||'')}</p><div class="list-actions"><button class="secondary-btn compact" onclick="toggleMaintenance('${m.id}')">${m.status==='done'?'改為待處理':'標記完成'}</button><button class="secondary-btn compact" onclick="editMaintenance('${m.id}')">修改</button><button class="secondary-btn compact danger-text" onclick="deleteMaintenance('${m.id}')">刪除</button></div></article>`).join('')||'<div class="card">目前沒有維修紀錄。</div>'
-} window.toggleMaintenance=async id=> {
-  let m=state.maintenance.find(x=>x.id===id);
-  m.status=m.status==='done'?'open':'done';
-  await save();
-  renderMaintenance();
-  renderDashboard()
-};
+/* maintenance.js — 維修與異常紀錄 */
+'use strict';
+function renderMaintenance(){const items=[...state.maintenance].sort((a,b)=>b.date.localeCompare(a.date));$('#app').innerHTML=`<section class="page">${pageHeader({eyebrow:'MAINTENANCE',title:'維修管理',subtitle:'設備異常與處理進度',actions:'<button class="primary-button" data-add-maintenance>＋新增維修</button>'})}<div class="list">${items.length?items.map(item=>`<article class="list-card"><div class="list-head"><div><div class="list-title">${escapeHtml(item.title)}</div><div class="list-meta">${escapeHtml(roomName(item.roomId))}・${escapeHtml(item.date)}</div></div><span class="status ${item.status==='done'?'success':'warning'}">${item.status==='done'?'已完成':'待處理'}</span></div>${item.notes?`<p>${escapeHtml(item.notes)}</p>`:''}<div class="button-row section"><button class="secondary-button compact" data-edit-maintenance="${item.id}">修改</button><button class="primary-button compact" data-toggle-maintenance="${item.id}">${item.status==='done'?'重新開啟':'標記完成'}</button><button class="ghost-button" data-delete-maintenance="${item.id}">刪除</button></div></article>`).join(''):emptyState('目前沒有維修紀錄。')}</div></section>`;$('[data-add-maintenance]').onclick=()=>openMaintenanceForm();$$('[data-edit-maintenance]').forEach(b=>b.onclick=()=>openMaintenanceForm(state.maintenance.find(i=>i.id===b.dataset.editMaintenance)));$$('[data-toggle-maintenance]').forEach(b=>b.onclick=async()=>{const i=state.maintenance.find(x=>x.id===b.dataset.toggleMaintenance);i.status=i.status==='done'?'open':'done';await saveState();renderMaintenance()});$$('[data-delete-maintenance]').forEach(b=>b.onclick=()=>deleteMaintenance(b.dataset.deleteMaintenance))}
+function openMaintenanceForm(item={}){openForm({title:item.id?'修改維修':'新增維修',fields:[{name:'title',label:'維修項目',value:item.title,required:true},{name:'roomId',label:'區域',type:'select',value:item.roomId||state.areas[0]?.id,options:state.areas.map(a=>({value:a.id,label:a.name}))},{name:'date',label:'發現日期',type:'date',value:item.date||today(),required:true},{name:'status',label:'狀態',type:'select',value:item.status||'open',options:[{value:'open',label:'待處理'},{value:'done',label:'已完成'}]},{name:'notes',label:'備註',type:'textarea',value:item.notes,wide:true}],onSubmit:async v=>{const t=item.id?state.maintenance.find(i=>i.id===item.id):{id:uid('repair')};Object.assign(t,v);if(!item.id)state.maintenance.push(t);await saveState();renderMaintenance()}})}
+async function deleteMaintenance(id){const item=state.maintenance.find(i=>i.id===id);if(!item||!(await confirmAction('刪除維修',`確定刪除「${item.title}」嗎？`)))return;state.maintenance=state.maintenance.filter(i=>i.id!==id);await saveState();renderMaintenance()}

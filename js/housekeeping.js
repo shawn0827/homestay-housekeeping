@@ -1,144 +1,101 @@
-/**
- * 模組：房務管理
- * 用途：每日房務紀錄、勾選項目、照片與完成狀態。
- *
- * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
- */
+/* housekeeping.js — 房務清單、驗房與照片 */
+'use strict';
 
-// ===== 每日房務資料 =====
-function getRecord(d) {
-  if(!state.records[d])state.records[d]= {
-    date:d,areas: {
-    },completedAt:null
-  };
-  let r=state.records[d];
-  state.templates.forEach(a=> {
-    if(!r.areas[a.id])r.areas[a.id]= {
-      checks: {
-      },notes:'',photos:[],savedAt:null,required:true
+function ensureHousekeepingRecord(date) {
+  state.housekeepingRecords[date] ||= { date, areas: {}, completedAt: null };
+  const record = state.housekeepingRecords[date];
+  state.areas.forEach(area => {
+    record.areas[area.id] ||= { checks: {}, notes: '', photos: [], savedAt: null };
+    area.items.forEach(item => { if (!(item.id in record.areas[area.id].checks)) record.areas[area.id].checks[item.id] = false; });
+  });
+  return record;
+}
+
+function areaHousekeepingStats(date, areaId) {
+  const area = state.areas.find(item => item.id === areaId);
+  const record = ensureHousekeepingRecord(date).areas[areaId];
+  const total = area?.items.length || 0;
+  const done = area?.items.filter(item => record.checks[item.id]).length || 0;
+  return { done, total, percent: total ? Math.round(done / total * 100) : 100 };
+}
+
+function housekeepingStats(date) {
+  let done = 0, total = 0;
+  state.areas.forEach(area => { const stats = areaHousekeepingStats(date, area.id); done += stats.done; total += stats.total; });
+  return { done, total, percent: total ? Math.round(done / total * 100) : 100 };
+}
+
+function renderHousekeeping(params = {}) {
+  const date = params.date || today();
+  const selectedArea = params.area;
+  if (selectedArea) return renderHousekeepingChecklist(date, selectedArea, params.group);
+  const record = ensureHousekeepingRecord(date);
+  const stats = housekeepingStats(date);
+  $('#app').innerHTML = `<section class="page">${pageHeader({ eyebrow: 'HOUSEKEEPING', title: '房務管理', subtitle: `${date}・完成率 ${stats.percent}%`, actions: `<input id="housekeepingDate" type="date" value="${date}">` })}<div class="card">${progressBar(stats.percent)}<div class="progress-meta"><span>${stats.done}/${stats.total} 項完成</span><span>${record.completedAt ? `已保存 ${new Date(record.completedAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}` : '尚未完成'}</span></div></div><div class="housekeeping-grid section">${state.areas.map(area => housekeepingRoomCard(date, area)).join('')}</div><div class="button-row section"><button class="primary-button" data-complete-housekeeping>完成並保存今日房務</button><button class="secondary-button" data-reset-housekeeping>清除本日勾選</button></div></section>`;
+  $('#housekeepingDate').onchange = event => navigate('housekeeping', { date: event.target.value });
+  $$('[data-area-card]').forEach(button => button.onclick = () => navigate('housekeeping', { date, area: button.dataset.areaCard }));
+  $('[data-complete-housekeeping]').onclick = () => completeHousekeeping(date);
+  $('[data-reset-housekeeping]').onclick = () => resetHousekeeping(date);
+}
+
+function housekeepingRoomCard(date, area) {
+  const stats = areaHousekeepingStats(date, area.id);
+  const tone = stats.percent < 50 ? 'danger' : stats.percent < 100 ? 'warning' : '';
+  return `<button class="card room-card" data-area-card="${area.id}"><div class="room-card-header"><span class="room-name"><span class="room-icon">${area.icon}</span>${escapeHtml(area.name)}</span><span class="status ${stats.percent === 100 ? 'success' : ''}">${stats.percent}%</span></div>${progressBar(stats.percent, tone)}<div class="progress-meta"><span>${stats.done}/${stats.total} 項</span><span>進入清單 ›</span></div></button>`;
+}
+
+function renderHousekeepingChecklist(date, areaId, requestedGroup) {
+  const area = state.areas.find(item => item.id === areaId);
+  if (!area) return navigate('housekeeping', { date }, { replace: true });
+  const groups = [...new Set(area.items.map(item => item.group))];
+  const activeGroup = groups.includes(requestedGroup) ? requestedGroup : groups[0];
+  const record = ensureHousekeepingRecord(date).areas[areaId];
+  const stats = areaHousekeepingStats(date, areaId);
+  $('#app').innerHTML = `<section class="page"><button class="back-button" data-back-housekeeping>← 返回房務總覽</button>${pageHeader({ eyebrow: 'CHECKLIST', title: `${area.icon} ${area.name}`, subtitle: `${date}・${stats.done}/${stats.total} 項`, actions: `<span class="status ${stats.percent === 100 ? 'success' : ''}">${stats.percent}%</span>` })}<div class="checklist-layout"><aside class="group-menu">${groups.map(group => `<button class="group-button ${group === activeGroup ? 'active' : ''}" data-group="${escapeHtml(group)}"><span>${escapeHtml(group)}</span><span>${area.items.filter(item => item.group === group && record.checks[item.id]).length}/${area.items.filter(item => item.group === group).length}</span></button>`).join('')}</aside><div><div class="check-group">${area.items.filter(item => item.group === activeGroup).map(item => `<label class="check-row"><input type="checkbox" data-task="${item.id}" ${record.checks[item.id] ? 'checked' : ''}><span>${escapeHtml(item.text)}</span></label>`).join('')}</div><section class="section card"><label class="field">備註／異常紀錄<textarea id="housekeepingNotes" rows="4" placeholder="例如：吹風機異常、床單污損……">${escapeHtml(record.notes || '')}</textarea></label></section><section class="section card"><div class="section-title"><h2>完成照片</h2><label class="secondary-button compact">＋拍照／選取<input id="housekeepingPhoto" type="file" accept="image/*" capture="environment" hidden></label></div><div class="photo-grid">${(record.photos || []).map((photo,index) => `<div class="photo-card"><img src="${photo}" alt="房務照片"><button data-delete-photo="${index}">×</button></div>`).join('') || '<div class="muted">尚未加入照片</div>'}</div></section><button class="primary-button full section" data-save-area>儲存此區</button></div></div></section>`;
+  $('[data-back-housekeeping]').onclick = () => navigate('housekeeping', { date });
+  $$('[data-group]').forEach(button => button.onclick = () => navigate('housekeeping', { date, area: areaId, group: button.dataset.group }));
+  $$('[data-task]').forEach(input => input.onchange = async () => { record.checks[input.dataset.task] = input.checked; ensureHousekeepingRecord(date).completedAt = null; scheduleSave(); renderHousekeepingChecklist(date, areaId, activeGroup); });
+  $('[data-save-area]').onclick = async () => { record.notes = $('#housekeepingNotes').value.trim(); record.savedAt = new Date().toISOString(); await saveState(); showToast('此區房務已儲存'); };
+  $('#housekeepingPhoto').onchange = event => addHousekeepingPhoto(date, areaId, event.target.files[0], activeGroup);
+  $$('[data-delete-photo]').forEach(button => button.onclick = async () => { record.photos.splice(Number(button.dataset.deletePhoto),1); await saveState(); renderHousekeepingChecklist(date, areaId, activeGroup); });
+}
+
+async function addHousekeepingPhoto(date, areaId, file, group) {
+  if (!file) return;
+  const data = await compressImage(file, 1280, .76);
+  ensureHousekeepingRecord(date).areas[areaId].photos.push(data);
+  await saveState();
+  renderHousekeepingChecklist(date, areaId, group);
+}
+
+function compressImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(image.width * ratio); canvas.height = Math.round(image.height * ratio);
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    a.items.forEach(i=> {
-      if(!(i.id in r.areas[a.id].checks))r.areas[a.id].checks[i.id]=false
-    })
+    image.onerror = reject;
+    image.src = URL.createObjectURL(file);
   });
-  return r
 }
 
-function areaStats(id,r=getRecord($('workDate').value||today())) {
-  let a=state.templates.find(x=>x.id===id),ar=r.areas[id],done=a.items.filter(i=>ar.checks[i.id]).length;
-  return {
-    done,total:a.items.length,pct:a.items.length?Math.round(done/a.items.length*100):100
-  }
+async function completeHousekeeping(date) {
+  const stats = housekeepingStats(date);
+  if (stats.percent !== 100) return showToast(`目前完成率 ${stats.percent}%，請先完成全部項目`);
+  ensureHousekeepingRecord(date).completedAt = new Date().toISOString();
+  await saveState();
+  renderHousekeeping({ date });
+  showToast('今日房務已完成');
+  if (state.settings.google.autoSync && googleAccessToken) syncGoogleDrive({ silent: true }).catch(console.error);
 }
 
-function dayStats(r) {
-  let done=0,total=0;
-  state.templates.forEach(a=> {
-    let s=areaStats(a.id,r);
-    done+=s.done;
-    total+=s.total
-  });
-  return {
-    done,total,pct:total?Math.round(done/total*100):100
-  }
-}
-
-// ===== 房務畫面 =====
-function renderHousekeeping() {
-  let d=$('workDate').value||today();
-  $('workDate').value=d;
-  let r=getRecord(d),s=dayStats(r);
-  $('totalPercent').textContent=s.pct+'%';
-  $('totalProgress').style.width=s.pct+'%';
-  $('dayStatus').textContent=r.completedAt?'已保存 '+new Date(r.completedAt).toLocaleString('zh-TW'):`已完成 ${s.done}/${s.total} 項`;
-  $('areaCards').innerHTML=state.templates.map(a=> {
-    let x=areaStats(a.id,r);
-    return`<button class="area-card ${x.pct===100?'done':''}" onclick="openChecklist('${a.id}')"><span>${a.icon}</span><strong>${esc(a.name)}</strong><small>${x.done}/${x.total} 項・${x.pct}%</small><div class="mini-progress"><div style="width:${x.pct}%"></div></div></button>`
-  }).join('')
-}
-
-window.openChecklist = (id) => {
-  activeAreaId = id;
-  sessionStorage.setItem("homestay_active_area", id);
-  show("checklistView");
-};
-
-function renderActiveChecklist() {
-  if (!activeAreaId) {
-    show("housekeepingView");
-    return;
-  }
-
-  const area = state.templates.find((item) => item.id === activeAreaId);
-  if (!area) {
-    activeAreaId = null;
-    sessionStorage.removeItem("homestay_active_area");
-    show("housekeepingView");
-    return;
-  }
-
-  const date = $("workDate").value || today();
-  const record = getRecord(date);
-  const areaRecord = record.areas[activeAreaId];
-
-  $("checklistTitle").textContent = area.name;
-  $("areaNotes").value = areaRecord.notes;
-
-  const groups = [...new Set(area.items.map((item) => item.group))];
-  $("checklistGroups").innerHTML = groups.map((group) => `
-    <section class="check-group">
-      <h3>${esc(group)}</h3>
-      ${area.items
-        .filter((item) => item.group === group)
-        .map((item) => `
-          <label class="check-item">
-            <input
-              type="checkbox"
-              data-item="${item.id}"
-              ${areaRecord.checks[item.id] ? "checked" : ""}
-            >
-            <span>${esc(item.text)}</span>
-          </label>
-        `).join("")}
-    </section>
-  `).join("");
-
-  document.querySelectorAll("[data-item]").forEach((checkbox) => {
-    checkbox.onchange = async () => {
-      areaRecord.checks[checkbox.dataset.item] = checkbox.checked;
-      record.completedAt = null;
-      await save();
-      updateAreaPct();
-    };
-  });
-
-  renderPhotos();
-  updateAreaPct();
-}
-
-function updateAreaPct() {
-  $('areaPercent').textContent=areaStats(activeAreaId).pct+'%'
-}
-
-function renderPhotos() {
-  let ar=getRecord($('workDate').value).areas[activeAreaId];
-  $('photoPreview').innerHTML=ar.photos.map((p,i)=>`<div><img src="${p}"><button class="secondary-btn compact danger-text" onclick="removePhoto(${i})">刪除</button></div>`).join('')
-} window.removePhoto=async i=> {
-  getRecord($('workDate').value).areas[activeAreaId].photos.splice(i,1);
-  await save();
-  renderPhotos()
-};
-async function compress(file) {
-  let img=new Image(),url=URL.createObjectURL(file);
-  await new Promise((r,j)=> {
-    img.onload=r;
-    img.onerror=j;
-    img.src=url
-  });
-  let max=1000,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');
-  c.width=img.width*scale;
-  c.height=img.height*scale;
-  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-  URL.revokeObjectURL(url);
-  return c.toDataURL('image/jpeg',.72)
+async function resetHousekeeping(date) {
+  if (!(await confirmAction('清除本日房務', `確定清除 ${date} 的全部勾選與備註嗎？`))) return;
+  delete state.housekeepingRecords[date];
+  await saveState();
+  renderHousekeeping({ date });
 }

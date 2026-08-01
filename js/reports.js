@@ -1,35 +1,8 @@
-/**
- * 模組：Excel 與檔案匯出
- * 用途：建立 Excel 工作簿、下載檔案及 JSON 備份。
- *
- * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
- */
-
-// ===== Excel 工作簿 =====
-function workbook() {
-  if(!window.XLSX)throw Error('Excel 元件未載入');
-  let wb=XLSX.utils.book_new(),add=(n,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),n);
-  add('營運總覽',[['民宿',state.settings.propertyName],['匯出時間',new Date().toLocaleString('zh-TW')],[],['訂房數',state.bookings.length],['房務日期數',Object.keys(state.records).length],['維修件數',state.maintenance.length],['交易筆數',state.transactions.length]]);
-  add('訂房紀錄',[['姓名','電話','房間','入住日期','入住時間','退房日期','人數','平台','房價','訂金','狀態','備註'],...state.bookings.map(b=>[b.guest,b.phone,roomName(b.roomId),b.checkIn,b.checkInTime||'',b.checkOut,b.guests,b.platform,b.amount,b.deposit,bookingStatus(b),b.notes])]);
-  let hk=[['日期','區域','分類','工作項目','完成','備註','完成時間']];
-  Object.entries(state.records).forEach(([d,r])=>state.templates.forEach(a=>a.items.forEach(i=>hk.push([d,a.name,i.group,i.text,r.areas[a.id]?.checks[i.id]?'是':'否',r.areas[a.id]?.notes||'',r.completedAt||'']))));
-  add('房務明細',hk);
-  add('備品庫存',[['品項','現有量','安全量','單位','累計耗用'],...state.inventory.map(i=>[i.name,i.qty,i.min,i.unit,i.usage||0])]);
-  add('維修紀錄',[['日期','區域','項目','狀態','備註'],...state.maintenance.map(m=>[m.date,roomName(m.roomId),m.title,m.status==='done'?'已完成':'待處理',m.notes])]);
-  add('營收與退款',[['日期','類型','說明','金額','平台'],...state.transactions.map(t=>[t.date,typeName(t.type),t.title,t.amount,t.platform])]);
-  add('SOP設定',[['區域','分類','工作項目'],...state.templates.flatMap(a=>a.items.map(i=>[a.name,i.group,i.text]))]);
-  return XLSX.write(wb, {
-    bookType:'xlsx',type:'array',compression:true
-  })
-}
-
-// ===== 檔案下載 =====
-function download(data,name,type) {
-  let a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([data], {
-    type
-  }));
-  a.download=name;
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000)
-}
+/* reports.js — Excel 與 JSON 備份 */
+'use strict';
+function renderReports(){$('#app').innerHTML=`<section class="page">${pageHeader({eyebrow:'REPORTS',title:'報表與備份',subtitle:'Excel 查看、JSON 完整還原'})}<div class="grid grid-2"><div class="card"><h2>Excel 營運紀錄</h2><p class="muted">包含訂房、房務明細、備品、維修與收支。</p><button class="primary-button full" data-export-excel>匯出 Excel</button></div><div class="card"><h2>完整系統備份</h2><p class="muted">JSON 用於完整還原，不建議手動修改。</p><div class="button-row"><button class="secondary-button" data-export-json>下載 JSON</button><label class="secondary-button">匯入 JSON<input data-import-json type="file" accept="application/json" hidden></label></div></div></div></section>`;$('[data-export-excel]').onclick=exportExcel;$('[data-export-json]').onclick=exportJson;$('[data-import-json]').onchange=e=>importJson(e.target.files[0])}
+function createWorkbook(){if(!window.XLSX)throw new Error('Excel 元件尚未載入');const wb=XLSX.utils.book_new();const bookings=[['姓名','電話','房間','入住日期','入住時間','退房日期','人數','平台','總房價','訂金','狀態','備註'],...state.bookings.map(b=>[b.guest,b.phone,roomName(b.roomId),b.checkIn,b.checkInTime,b.checkOut,b.guests,b.platform,b.amount,b.deposit,b.status,b.notes])];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bookings),'訂房紀錄');const hk=[['日期','區域','分類','工作項目','完成','備註','完成時間']];Object.entries(state.housekeepingRecords).sort().forEach(([date,r])=>state.areas.forEach(a=>a.items.forEach(i=>hk.push([date,a.name,i.group,i.text,r.areas[a.id]?.checks?.[i.id]?'是':'否',r.areas[a.id]?.notes||'',r.completedAt||'']))));XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(hk),'房務明細');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(state.inventory.map(i=>({品項:i.name,目前數量:i.qty,安全量:i.min,庫存目標:i.target,單位:i.unit,累計耗用:i.usage}))), '備品');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(state.maintenance.map(i=>({日期:i.date,區域:roomName(i.roomId),項目:i.title,狀態:i.status,備註:i.notes}))), '維修');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(state.transactions.map(i=>({日期:i.date,類型:transactionTypeLabel(i.type),金額:i.amount,分類:i.category,說明:i.description}))), '收支');return wb}
+function exportExcel(){try{XLSX.writeFile(createWorkbook(),`民宿營運完整紀錄_${today()}.xlsx`)}catch(e){showToast(e.message)}}
+function exportJson(){downloadBlob(JSON.stringify({app:'民宿營運管理系統',version:APP_VERSION,exportedAt:new Date().toISOString(),data:state},null,2),`民宿營運完整備份_${today()}.json`,'application/json')}
+function downloadBlob(content,name,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function importJson(file){if(!file)return;const reader=new FileReader();reader.onload=async()=>{try{const payload=JSON.parse(reader.result);const incoming=payload.data||payload;if(!incoming.settings||!incoming.bookings)throw new Error('備份格式不正確');if(!(await confirmAction('匯入備份','匯入會覆蓋目前資料，確定繼續嗎？')))return;state=incoming;migrateState();await saveState();showToast('備份已還原');navigate('home')}catch(e){showToast(e.message)}};reader.readAsText(file)}

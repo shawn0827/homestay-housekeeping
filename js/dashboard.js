@@ -1,152 +1,71 @@
-/**
- * 模組：主頁與提醒
- * 用途：今日入住、退房、房務、營收、低庫存及維修提醒。
- *
- * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
- */
+/* dashboard.js — 主頁、提醒與快速入口 */
+'use strict';
 
-// ===== 主頁渲染 =====
 function renderDashboard() {
   const date = today();
-  const arrivals = state.bookings.filter((booking) =>
-    booking.checkIn === date && booking.status !== "cancelled"
-  );
-  const departures = state.bookings.filter((booking) =>
-    booking.checkOut === date && booking.status !== "cancelled"
-  );
-  const staying = state.bookings.filter((booking) =>
-    booking.checkIn <= date &&
-    booking.checkOut > date &&
-    booking.status !== "cancelled"
-  );
-  const record = getRecord(date);
-  const housekeeping = dayStats(record);
-  const lowInventory = state.inventory.filter((item) => +item.qty <= +item.min);
-  const pendingMaintenance = state.maintenance.filter((item) => item.status !== "done");
+  const arrivals = state.bookings.filter(item => item.checkIn === date && item.status !== 'cancelled');
+  const departures = state.bookings.filter(item => item.checkOut === date && item.status !== 'cancelled');
+  const staying = state.bookings.filter(item => item.checkIn <= date && item.checkOut > date && !['cancelled', 'completed'].includes(item.status));
+  const housekeeping = housekeepingStats(date);
+  const lowInventory = state.inventory.filter(item => Number(item.qty) <= Number(item.min));
+  const openMaintenance = state.maintenance.filter(item => item.status !== 'done');
+  const month = date.slice(0, 7);
+  const net = monthlyNet(month);
 
-  $("dashboardDate").textContent = date;
-  refreshHeaderUser();
+  $('#app').innerHTML = `<section class="page">
+    ${pageHeader({ eyebrow: 'TODAY', title: '今日營運', subtitle: date, actions: '<button class="primary-button" data-action="quick-booking">＋新增訂房</button>' })}
+    <div class="grid grid-4" id="dashboardKpis">
+      ${dashboardKpi('今日入住', arrivals.length, '查看今日入住', 'checkin')}
+      ${dashboardKpi('今日退房', departures.length, '查看今日退房', 'checkout')}
+      ${dashboardKpi('住宿中', staying.length, '查看住宿中的客人', 'staying')}
+      ${dashboardKpi('房務完成', `${housekeeping.percent}%`, '前往今日房務', 'housekeeping')}
+    </div>
+    <section class="section">
+      <div class="section-title"><h2>提醒事項</h2><span class="muted">${arrivals.length + lowInventory.length + openMaintenance.length} 項</span></div>
+      <div class="alert-list">${renderAlerts(arrivals, lowInventory, openMaintenance)}</div>
+    </section>
+    <section class="section">
+      <div class="section-title"><h2>今日工作</h2></div>
+      <div class="grid grid-2">
+        ${moduleCard('🧳', '入住', arrivals.map(item => `${item.checkInTime || '15:00'} ${roomName(item.roomId)}・${item.guest}`).join('、') || '今天沒有入住', 'bookings', { filter: 'checkin', date })}
+        ${moduleCard('🚪', '退房', departures.map(item => `${roomName(item.roomId)}・${item.guest}`).join('、') || '今天沒有退房', 'bookings', { filter: 'checkout', date })}
+        ${moduleCard('🧹', '房務', `${housekeeping.done}/${housekeeping.total} 項完成`, 'housekeeping', { date })}
+        ${moduleCard('💰', '本月淨額', money(net), 'finance', { month })}
+      </div>
+    </section>
+    <section class="section"><div class="section-title"><h2>營運概況</h2></div><div class="grid grid-3">
+      <div class="card"><div class="muted">低庫存</div><strong>${lowInventory.length} 項</strong></div>
+      <div class="card"><div class="muted">待維修</div><strong>${openMaintenance.length} 件</strong></div>
+      <div class="card"><div class="muted">本月訂房</div><strong>${state.bookings.filter(item => item.checkIn.startsWith(month) && item.status !== 'cancelled').length} 筆</strong></div>
+    </div></section>
+  </section>`;
 
-  $("kpiGrid").innerHTML = kpis([
-    { label: "今日入住", value: arrivals.length, action: "today-in" },
-    { label: "今日退房", value: departures.length, action: "today-out" },
-    { label: "住宿中", value: staying.length, action: "stay" },
-    { label: "房務完成", value: `${housekeeping.pct}%`, action: "housekeeping" },
-  ]);
+  $('[data-action="quick-booking"]').onclick = () => openBookingForm();
+  $$('[data-kpi]').forEach(button => button.onclick = () => handleDashboardKpi(button.dataset.kpi, date));
+  $$('[data-module-route]').forEach(button => button.onclick = () => navigate(button.dataset.moduleRoute, JSON.parse(button.dataset.moduleParams || '{}')));
+}
 
-  document.querySelectorAll("[data-kpi-action]").forEach((button) => {
-    button.onclick = () => openDashboardKpi(button.dataset.kpiAction);
-  });
+function dashboardKpi(label, value, hint, action) {
+  return `<button class="kpi-card" data-kpi="${action}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(hint)} →</small></button>`;
+}
 
-  const todayModules = [
-    {
-      icon: "🧳",
-      title: "入住",
-      detail: arrivals.map((booking) =>
-        `${roomName(booking.roomId)} ${booking.guest}${booking.checkInTime ? ` ${booking.checkInTime}` : ""}`
-      ).join("、") || "今日無入住",
-      action: "today-in",
-    },
-    {
-      icon: "🚪",
-      title: "退房",
-      detail: departures.map((booking) =>
-        `${roomName(booking.roomId)} ${booking.guest}`
-      ).join("、") || "今日無退房",
-      action: "today-out",
-    },
-    {
-      icon: "🧹",
-      title: "房務",
-      detail: `${housekeeping.done}/${housekeeping.total} 項已完成`,
-      action: "housekeeping",
-    },
-    {
-      icon: "💰",
-      title: "本月營收",
-      detail: `$${monthIncome(date.slice(0, 7)).toLocaleString()}`,
-      action: "finance",
-    },
-  ];
+function handleDashboardKpi(action, date) {
+  if (action === 'housekeeping') navigate('housekeeping', { date });
+  else navigate('bookings', { filter: action, date });
+}
 
-  $("todayCards").innerHTML = todayModules.map((module) => `
-    <button class="module-card" data-dashboard-action="${module.action}">
-      <span>${module.icon}</span>
-      <strong>${module.title}</strong>
-      <small>${esc(module.detail)}</small>
-    </button>
-  `).join("");
+function moduleCard(icon, title, subtitle, route, params = {}) {
+  return `<button class="module-card" data-module-route="${route}" data-module-params='${escapeHtml(JSON.stringify(params))}'><span class="icon">${icon}</span><span class="copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="chevron">›</span></button>`;
+}
 
-  document.querySelectorAll("[data-dashboard-action]").forEach((button) => {
-    button.onclick = () => openDashboardKpi(button.dataset.dashboardAction);
-  });
-
+function renderAlerts(arrivals, lowInventory, maintenance) {
   const alerts = [];
-
-  arrivals
-    .sort((left, right) => (left.checkInTime || "23:59").localeCompare(right.checkInTime || "23:59"))
-    .forEach((booking) => {
-      alerts.push(`
-        <div class="alert">
-          今日 ${esc(booking.checkInTime || "時間未設定")} 入住：
-          ${esc(roomName(booking.roomId))}－${esc(booking.guest)}
-        </div>
-      `);
-    });
-
-  lowInventory.forEach((item) => {
-    alerts.push(`
-      <div class="alert warn">
-        備品「${esc(item.name)}」剩 ${item.qty}${esc(item.unit)}，
-        低於安全量 ${item.min}${esc(item.unit)}
-      </div>
-    `);
+  arrivals.sort((a, b) => (a.checkInTime || '').localeCompare(b.checkInTime || '')).forEach(item => {
+    alerts.push(`<button class="alert" data-alert-route="bookings" data-alert-filter="checkin"><span class="alert-icon">⏰</span><span><strong>${escapeHtml(item.checkInTime || '15:00')} 客人入住</strong>${escapeHtml(roomName(item.roomId))}・${escapeHtml(item.guest)}</span></button>`);
   });
-
-  pendingMaintenance.forEach((item) => {
-    alerts.push(`
-      <div class="alert danger">
-        待維修：${esc(roomName(item.roomId))}－${esc(item.title)}
-      </div>
-    `);
-  });
-
-  $("alertsList").innerHTML = alerts.join("") ||
-    '<div class="alert">目前沒有需要處理的提醒。</div>';
-}
-
-function openDashboardKpi(action) {
-  if (["today-in", "today-out", "stay"].includes(action)) {
-    $("bookingMonth").value = today().slice(0, 7);
-    $("bookingFilter").value = action;
-    sessionStorage.setItem("homestay_booking_filter", action);
-    show("bookingsView");
-    return;
-  }
-
-  if (action === "housekeeping") {
-    $("workDate").value = today();
-    sessionStorage.setItem("homestay_work_date", today());
-    show("housekeepingView");
-    return;
-  }
-
-  if (action === "finance") {
-    $("financeMonth").value = today().slice(0, 7);
-    show("financeView");
-  }
-}
-
-// ===== 主頁小工具 =====
-function kpis(items) {
-  return items.map((item) => `
-    <button class="kpi kpi-button" data-kpi-action="${item.action}">
-      <small>${esc(item.label)}</small>
-      <strong>${esc(item.value)}</strong>
-    </button>
-  `).join("");
-}
-
-function monthIncome(m) {
-  return state.transactions.filter(t=>t.date.startsWith(m)&&['income','deposit'].includes(t.type)).reduce((s,t)=>s+(+t.amount||0),0)-state.transactions.filter(t=>t.date.startsWith(m)&&t.type==='refund').reduce((s,t)=>s+(+t.amount||0),0)
+  lowInventory.forEach(item => alerts.push(`<button class="alert warning" data-alert-route="inventory"><span class="alert-icon">📦</span><span><strong>低庫存：${escapeHtml(item.name)}</strong>剩餘 ${item.qty}${escapeHtml(item.unit)}，安全量 ${item.min}${escapeHtml(item.unit)}</span></button>`));
+  maintenance.forEach(item => alerts.push(`<button class="alert danger" data-alert-route="maintenance"><span class="alert-icon">🛠️</span><span><strong>待維修：${escapeHtml(item.title)}</strong>${escapeHtml(roomName(item.roomId))}</span></button>`));
+  if (!alerts.length) return '<div class="alert"><span class="alert-icon">✓</span><span><strong>目前沒有待處理提醒</strong>今天的營運狀況正常。</span></div>';
+  setTimeout(() => $$('[data-alert-route]').forEach(button => button.onclick = () => navigate(button.dataset.alertRoute, button.dataset.alertFilter ? { filter: button.dataset.alertFilter, date: today() } : {})), 0);
+  return alerts.join('');
 }

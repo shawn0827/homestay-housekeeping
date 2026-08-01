@@ -1,21 +1,7 @@
-/**
- * 模組：收支管理
- * 用途：收入、訂金、退款及支出紀錄。
- *
- * 修改提醒：修改前先備份；修改後更新 sw.js 快取版本並測試。
- */
-
-// ===== 收支列表與月統計 =====
-function renderFinance() {
-  let m=$('financeMonth').value||today().slice(0,7),f=$('financeFilter').value;
-  $('financeMonth').value=m;
-  let ts=state.transactions.filter(t=>t.date.startsWith(m)&&(f==='all'||t.type===f)).sort((a,b)=>b.date.localeCompare(a.date)),inc=ts.filter(t=>['income','deposit'].includes(t.type)).reduce((s,t)=>s+(+t.amount||0),0),ref=ts.filter(t=>t.type==='refund').reduce((s,t)=>s+(+t.amount||0),0),exp=ts.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
-  $('financeSummary').innerHTML=kpis([['收入／訂金','$'+inc.toLocaleString()],['退款','$'+ref.toLocaleString()],['支出','$'+exp.toLocaleString()],['淨額','$'+(inc-ref-exp).toLocaleString()]]);
-  $('transactionList').innerHTML=ts.map(t=>`<article class="list-item"><div class="list-head"><div><strong>${esc(t.title)}</strong><div class="muted">${t.date}・${typeName(t.type)}・${esc(t.platform||'')}</div></div><strong>$${(+t.amount).toLocaleString()}</strong></div><div class="list-actions"><button class="secondary-btn compact" onclick="editTransaction('${t.id}')">修改</button><button class="secondary-btn compact danger-text" onclick="deleteTransaction('${t.id}')">刪除</button></div></article>`).join('')||'<div class="card">沒有紀錄。</div>'
-}
-
-function typeName(x) {
-  return( {
-    income:'收入',deposit:'訂金',refund:'退款',expense:'支出'
-  })[x]||x
-}
+/* finance.js — 收入、訂金、退款與支出 */
+'use strict';
+function monthlyNet(month){return state.transactions.filter(i=>i.date.startsWith(month)).reduce((sum,i)=>sum+(['refund','expense'].includes(i.type)?-Number(i.amount):Number(i.amount)),0)}
+function renderFinance(params={}){const month=params.month||today().slice(0,7);const items=state.transactions.filter(i=>i.date.startsWith(month)).sort((a,b)=>b.date.localeCompare(a.date));const income=items.filter(i=>['income','deposit'].includes(i.type)).reduce((s,i)=>s+Number(i.amount),0);const out=items.filter(i=>['refund','expense'].includes(i.type)).reduce((s,i)=>s+Number(i.amount),0);$('#app').innerHTML=`<section class="page">${pageHeader({eyebrow:'FINANCE',title:'收支管理',subtitle:`${month}・淨額 ${money(income-out)}`,actions:'<button class="primary-button" data-add-transaction>＋新增交易</button>'})}<div class="toolbar"><input id="financeMonth" type="month" value="${month}"></div><div class="grid grid-3"><div class="card"><div class="muted">收入與訂金</div><strong>${money(income)}</strong></div><div class="card"><div class="muted">退款與支出</div><strong>${money(out)}</strong></div><div class="card"><div class="muted">淨額</div><strong>${money(income-out)}</strong></div></div><div class="list section">${items.length?items.map(i=>`<article class="list-card"><div class="list-head"><div><div class="list-title">${escapeHtml(i.description||i.category)}</div><div class="list-meta">${escapeHtml(i.date)}・${transactionTypeLabel(i.type)}・${escapeHtml(i.category||'')}</div></div><strong>${['refund','expense'].includes(i.type)?'-':'+'}${money(i.amount)}</strong></div><div class="button-row section"><button class="secondary-button compact" data-edit-transaction="${i.id}">修改</button><button class="ghost-button" data-delete-transaction="${i.id}">刪除</button></div></article>`).join(''):emptyState('這個月份沒有收支紀錄。')}</div></section>`;$('#financeMonth').onchange=e=>navigate('finance',{month:e.target.value});$('[data-add-transaction]').onclick=()=>openTransactionForm();$$('[data-edit-transaction]').forEach(b=>b.onclick=()=>openTransactionForm(state.transactions.find(i=>i.id===b.dataset.editTransaction)));$$('[data-delete-transaction]').forEach(b=>b.onclick=()=>deleteTransaction(b.dataset.deleteTransaction))}
+function transactionTypeLabel(type){return({income:'收入',deposit:'訂金',refund:'退款',expense:'支出'})[type]||type}
+function openTransactionForm(item={}){openForm({title:item.id?'修改交易':'新增交易',fields:[{name:'date',label:'日期',type:'date',value:item.date||today(),required:true},{name:'type',label:'類型',type:'select',value:item.type||'income',options:[{value:'income',label:'收入'},{value:'deposit',label:'訂金'},{value:'refund',label:'退款'},{value:'expense',label:'支出'}]},{name:'amount',label:'金額',type:'number',value:item.amount||0,min:0,required:true},{name:'category',label:'分類',value:item.category||''},{name:'description',label:'說明',value:item.description||'',wide:true}],onSubmit:async v=>{const t=item.id?state.transactions.find(i=>i.id===item.id):{id:uid('tx')};Object.assign(t,v,{amount:Number(v.amount)});if(!item.id)state.transactions.push(t);await saveState();renderFinance({month:v.date.slice(0,7)})}})}
+async function deleteTransaction(id){if(!(await confirmAction('刪除交易','確定刪除這筆交易嗎？')))return;state.transactions=state.transactions.filter(i=>i.id!==id);await saveState();renderRoute()}
