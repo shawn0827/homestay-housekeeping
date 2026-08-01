@@ -70,18 +70,18 @@ function renderDashboard() {
             <strong>${money(net)}</strong>
           </div>
           <div class="card operation-card">
+            <div class="muted">本月訂房</div>
+            <strong>${state.bookings.filter(item =>
+              item.checkIn.startsWith(month) && item.status !== 'cancelled'
+            ).length} 筆</strong>
+          </div>
+          <div class="card operation-card">
             <div class="muted">低庫存</div>
             <strong>${lowInventory.length} 項</strong>
           </div>
           <div class="card operation-card">
             <div class="muted">待維修</div>
             <strong>${openMaintenance.length} 件</strong>
-          </div>
-          <div class="card operation-card">
-            <div class="muted">本月訂房</div>
-            <strong>${state.bookings.filter(item =>
-              item.checkIn.startsWith(month) && item.status !== 'cancelled'
-            ).length} 筆</strong>
           </div>
         </div>
       </section>
