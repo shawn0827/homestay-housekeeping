@@ -1,42 +1,45 @@
-# 民宿營運管理系統 v8.1.0
+# 民宿營運管理系統 v8.2.0
 
-本版本將程式重新排版並加入中文註解，功能與 v8 相同。
+## 本版更新
 
-## 修改對照
+1. 重新整理頁面後，保留原本所在頁面。
+2. 保留訂房月份、訂房篩選、房務日期及設定頁層級。
+3. 主頁四個統計卡片皆可點擊：
+   - 今日入住：顯示今天入住的訂房。
+   - 今日退房：顯示今天退房的訂房。
+   - 住宿中：顯示目前住宿中的訂房。
+   - 房務完成：前往今天的房務頁。
+4. 今日工作中的入住、退房、房務及營收也改為有效的快速入口。
+5. 新增「使用者帳號」頁，可連接 Google 帳號。
+6. 連接後顯示 Google 姓名、電子郵件及頭像，右上角使用帳號名稱。
+7. 備品卡片移除「誤按可點修改」提示列。
+8. 更新 Service Worker 快取版本。
 
-| 功能 | 檔案 |
-|---|---|
-| 主頁與提醒 | `js/dashboard.js` |
-| 訂房、入住、退房 | `js/bookings.js` |
-| 房務與照片 | `js/housekeeping.js` |
-| 備品與耗用 | `js/inventory.js` |
-| 維修 | `js/maintenance.js` |
-| 收入、訂金、退款、支出 | `js/finance.js` |
-| 統計 | `js/analytics.js` |
-| 民宿、使用者、房間、SOP | `js/settings.js` |
-| Excel 與 JSON | `js/reports.js` |
-| Google Drive | `js/google.js` |
-| 資料庫與預設值 | `js/core.js` |
-| 按鈕事件與啟動 | `js/app.js` |
-| 畫面 | `index.html` |
-| 顏色與外觀 | `styles.css` |
+## Google 帳號連接
 
-## 如何快速找功能
+先到：
 
-每個 JS 檔案最上方都有用途說明，重要區段使用：
-
-```javascript
-// ===== 功能名稱 =====
+```text
+設定 → Google Drive
 ```
 
-在 GitHub 或瀏覽器按 `Ctrl+F` 搜尋 `=====` 即可跳到主要區段。
+填入 OAuth Client ID 並儲存，再到：
 
-## 發布新版
-
-修改後請開啟 `sw.js`，更改 CACHE 名稱，例如：
-
-```javascript
-const CACHE = "homestay-operation-v8-1-1";
+```text
+設定 → 使用者帳號
 ```
 
-然後 Commit 到 GitHub，Safari 重新整理並重開主畫面 App。
+按「使用 Google 帳號連接」。
+
+本系統會要求以下權限：
+
+- `openid`
+- `email`
+- `profile`
+- `drive.file`
+
+`drive.file` 只允許系統存取自己建立或由使用者授權的檔案。授權權杖不會永久寫入 IndexedDB。
+
+## 頁面記憶
+
+目前頁面與操作位置使用 URL Hash 和 Session Storage 保存。重新整理仍留在原頁；完全關閉瀏覽器工作階段後，部分頁面狀態可能重新開始。

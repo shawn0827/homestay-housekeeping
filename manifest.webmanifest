@@ -1,7 +1,7 @@
 {
-  "name": "民宿營運管理系統 v8.1",
+  "name": "民宿營運管理系統 v8.2",
   "short_name": "民宿營運",
-  "description": "模組化民宿營運管理系統，方便依功能修改與維護。",
+  "description": "支援頁面記憶、主頁快速篩選與 Google 使用者帳號連接的民宿營運系統。",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
