@@ -81,7 +81,6 @@ window.editInventory=id=>{let i=state.inventory.find(x=>x.id===id);inventoryForm
     {id:'qty',label:'目前數量',type:'number',value:i.qty||0},
     {id:'min',label:'安全量',type:'number',value:i.min||0},
     {id:'unit',label:'單位',value:i.unit},
-    {id:'usage',label:'累計耗用（誤按時可在此修正）',type:'number',value:i.usage||0}
   ],async v=>{
     if(i.id)Object.assign(i,{name:v.name,qty:+v.qty,min:+v.min,unit:v.unit,usage:Math.max(0,+v.usage||0)});
     else state.inventory.push({id:uid('stock'),name:v.name,qty:+v.qty,min:+v.min,unit:v.unit,usage:Math.max(0,+v.usage||0)});
