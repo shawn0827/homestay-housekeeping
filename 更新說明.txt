@@ -1,2 +1,0 @@
-民宿房務管理系統 v5：IndexedDB＋Google Drive＋Excel .xlsx 紀錄。
-請閱讀 Excel紀錄更新說明_請先閱讀.txt。
