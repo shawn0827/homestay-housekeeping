@@ -1,0 +1,25 @@
+民宿房務管理系統 v4｜IndexedDB 更新說明
+=======================================
+
+本版更新：
+1. 本機資料由 Local Storage 改為 IndexedDB。
+2. 每次勾選、修改設定、更新庫存後會自動保存。
+3. 第一次開啟 v4 時，若偵測到 v2/v3 舊資料，會自動移轉到 IndexedDB。
+4. Google Drive 自動備份功能保持不變。
+5. GitHub Pages 只保存程式，不保存你的房務資料。
+
+更新 GitHub Pages：
+1. 更新前先在舊版下載完整 JSON 備份。
+2. 解壓縮 v4 ZIP。
+3. 將所有檔案與 icons 資料夾上傳到原 GitHub repository 根目錄並覆蓋。
+4. Commit changes。
+5. 用 Safari 開啟網站重新整理。
+6. 完全關閉 iPad 主畫面的 App，再重新開啟。
+7. 進入「設定」確認畫面顯示「IndexedDB 已啟用」。
+8. 檢查舊房務紀錄、清單、庫存及 Google 設定是否仍存在。
+
+注意：
+- IndexedDB 仍屬於裝置本機資料。
+- 清除 Safari 網站資料仍可能刪除本機紀錄。
+- 請繼續使用 Google Drive 自動同步及定期下載 JSON 備份。
+- GitHub repository 公開不會公開 IndexedDB 內容，因為資料只存在你的裝置及授權的 Google Drive。

@@ -1,7 +1,6 @@
 {
-  "name": "民宿房務管理系統",
+  "name": "民宿房務管理系統 v5",
   "short_name": "民宿房務",
-  "description": "雙人房、四人房、公共空間、洗衣、歷史紀錄與備品庫存管理。",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
@@ -9,8 +8,16 @@
   "background_color": "#f5f3ed",
   "theme_color": "#315f57",
   "icons": [
-    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png"},
-    {"src":"./icons/icon-512-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
-  ]
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "description": "IndexedDB、Google Drive 與 Excel 房務紀錄。"
 }

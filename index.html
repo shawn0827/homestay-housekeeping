@@ -5,82 +5,191 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#315f57">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="民宿房務">
   <title>民宿房務管理系統</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <header class="app-header">
-    <div><div class="eyebrow">HOUSEKEEPING</div><h1 id="propertyTitle">我的民宿</h1></div>
-    <button id="installHelpBtn" class="icon-btn">安裝</button>
-  </header>
+<header class="app-header">
+  <div>
+    <div class="eyebrow">HOUSEKEEPING</div>
+    <h1 id="propertyTitle">我的民宿</h1>
+  </div>
+</header>
 
-  <main>
-    <section id="dashboardView" class="view active">
-      <div class="date-card">
-        <button id="prevDateBtn" class="date-arrow">‹</button>
-        <label><span>工作日期</span><input id="workDate" type="date"></label>
-        <button id="nextDateBtn" class="date-arrow">›</button>
+<main>
+  <section id="dashboardView" class="view active">
+    <div class="date-card">
+      <button id="prevDateBtn" class="date-arrow">‹</button>
+      <label><span>工作日期</span><input id="workDate" type="date"></label>
+      <button id="nextDateBtn" class="date-arrow">›</button>
+    </div>
+
+    <div class="summary-card">
+      <div><span class="muted-light">本日完成率</span><strong id="totalPercent">0%</strong></div>
+      <div class="progress"><div id="totalProgress"></div></div>
+      <p id="dayStatus">尚未完成</p>
+    </div>
+
+    <div id="areaCards" class="area-grid"></div>
+
+    <div class="action-row">
+      <button id="completeDayBtn" class="primary-btn">完成並保存今日紀錄</button>
+      <button id="resetDayBtn" class="secondary-btn danger-text">清除本日勾選</button>
+    </div>
+  </section>
+
+  <section id="checklistView" class="view">
+    <button id="backBtn" class="back-btn">← 返回首頁</button>
+    <div class="section-title-row">
+      <div><div class="eyebrow">CHECKLIST</div><h2 id="checklistTitle"></h2></div>
+      <span id="areaPercent" class="percent-pill">0%</span>
+    </div>
+    <div id="checklistGroups"></div>
+    <label class="notes-card">
+      <span>備註／異常紀錄</span>
+      <textarea id="areaNotes" rows="4" placeholder="例如：吹風機異常、床單污損、發現遺留物……"></textarea>
+    </label>
+    <button id="finishAreaBtn" class="primary-btn full">儲存此區紀錄</button>
+  </section>
+
+  <section id="historyView" class="view">
+    <div class="section-title-row"><div><div class="eyebrow">HISTORY</div><h2>工作紀錄</h2></div></div>
+    <div class="filter-row">
+      <input id="historyMonth" type="month">
+      <button id="exportCsvBtn" class="secondary-btn compact">匯出 Excel</button>
+    </div>
+    <div id="historyList"></div>
+  </section>
+
+  <section id="inventoryView" class="view">
+    <div class="section-title-row">
+      <div><div class="eyebrow">INVENTORY</div><h2>備品庫存</h2></div>
+      <button id="addInventoryBtn" class="secondary-btn compact">＋新增</button>
+    </div>
+    <div id="inventoryList"></div>
+  </section>
+
+  <section id="settingsView" class="view">
+    <div class="section-title-row"><div><div class="eyebrow">SETTINGS</div><h2>系統設定</h2></div></div>
+
+    <div class="settings-card">
+      <h3>民宿基本資料</h3>
+      <label>民宿名稱<input id="propertyNameInput" maxlength="30"></label>
+      <button id="saveSettingsBtn" class="primary-btn full">儲存名稱</button>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-head">
+        <div><h3>房務區域與清單</h3><p class="muted">可新增、修改或刪除房間、公共空間與工作項目。</p></div>
+        <button id="addAreaBtn" class="secondary-btn compact">＋新增區域</button>
       </div>
-      <div class="summary-card">
-        <div><span class="muted">今日完成率</span><strong id="totalPercent">0%</strong></div>
-        <div class="progress"><div id="totalProgress"></div></div>
-        <p id="dayStatus">尚未完成</p>
+      <div id="areaSettingsList"></div>
+    </div>
+
+    <div class="settings-card">
+      <h3>Google 雲端備份</h3>
+      <p class="muted">使用 Google OAuth 授權，只存取本系統建立的檔案。程式不會保存 Google 密碼、Client Secret 或存取權杖。</p>
+
+      <label>Google OAuth Client ID
+        <input id="googleClientIdInput" type="text" autocomplete="off" placeholder="例如：123456789-xxxx.apps.googleusercontent.com">
+      </label>
+
+      <label>Google Drive 資料夾名稱
+        <input id="googleFolderNameInput" type="text" maxlength="60" value="民宿房務管理系統備份">
+      </label>
+
+      <label class="toggle-row">
+        <input id="googleAutoSyncInput" type="checkbox">
+        <span>完成每日房務後自動同步</span>
+      </label>
+
+      <div id="googleStatusCard" class="cloud-status disconnected">
+        <strong id="googleStatusTitle">尚未連接 Google Drive</strong>
+        <span id="googleStatusText">請先儲存設定，再按「連接 Google Drive」。</span>
       </div>
-      <div id="areaCards" class="area-grid"></div>
-      <div class="action-row">
-        <button id="completeDayBtn" class="primary-btn">完成並保存今日紀錄</button>
-        <button id="resetDayBtn" class="secondary-btn danger-text">清除本日勾選</button>
+
+      <div class="stack-buttons">
+        <button id="saveGoogleSettingsBtn" class="secondary-btn">儲存 Google 設定</button>
+        <button id="connectGoogleBtn" class="primary-btn">連接 Google Drive</button>
+        <button id="syncGoogleBtn" class="secondary-btn">立即同步</button>
+        <button id="restoreGoogleBtn" class="secondary-btn">從雲端還原最新備份</button>
+        <button id="disconnectGoogleBtn" class="secondary-btn danger-text">中斷本次連線</button>
       </div>
-    </section>
 
-    <section id="checklistView" class="view">
-      <button id="backBtn" class="back-btn">← 返回首頁</button>
-      <div class="section-title-row"><div><div class="eyebrow">CHECKLIST</div><h2 id="checklistTitle">房務清單</h2></div><span id="areaPercent" class="percent-pill">0%</span></div>
-      <div id="checklistGroups"></div>
-      <label class="notes-card"><span>備註／異常紀錄</span><textarea id="areaNotes" rows="4" placeholder="例如：吹風機異常、床單污損、發現遺留物……"></textarea></label>
-      <button id="finishAreaBtn" class="primary-btn full">儲存此區紀錄</button>
-    </section>
+      <p class="muted cloud-note">基於安全考量，存取權杖只保存在記憶體中，不寫入瀏覽器。重新開啟 App 後可能需要再按一次「連接 Google Drive」。未連線時完成的紀錄會標記為待同步。</p>
+    </div>
 
-    <section id="historyView" class="view">
-      <div class="section-title-row"><div><div class="eyebrow">HISTORY</div><h2>工作紀錄</h2></div></div>
-      <div class="filter-row"><input id="historyMonth" type="month"><button id="exportCsvBtn" class="secondary-btn compact">匯出 CSV</button></div>
-      <div id="historyList"></div>
-    </section>
-
-    <section id="inventoryView" class="view">
-      <div class="section-title-row"><div><div class="eyebrow">INVENTORY</div><h2>備品庫存</h2></div><button id="addInventoryBtn" class="secondary-btn compact">＋新增</button></div>
-      <div id="inventoryList"></div>
-    </section>
-
-    <section id="settingsView" class="view">
-      <div class="section-title-row"><div><div class="eyebrow">SETTINGS</div><h2>設定與備份</h2></div></div>
-      <div class="settings-card">
-        <label>民宿名稱<input id="propertyNameInput" type="text" maxlength="30"></label>
-        <button id="saveSettingsBtn" class="primary-btn full">儲存名稱</button>
+    <div class="settings-card">
+      <h3>本機資料庫</h3>
+      <p class="muted">本版本使用 IndexedDB 保存每日紀錄、設定與庫存，容量比 Local Storage 更大，也較適合長期使用。</p>
+      <div class="cloud-status connected">
+        <strong>IndexedDB 已啟用</strong>
+        <span>資料會在每次操作後自動保存在此裝置。若舊版資料仍存在，首次開啟時會自動移轉。</span>
       </div>
-      <div class="settings-card">
-        <h3>資料備份</h3><p class="muted">資料儲存在目前裝置的瀏覽器內，建議定期備份。</p>
-        <div class="stack-buttons"><button id="backupBtn" class="secondary-btn">下載完整備份（JSON）</button><label class="secondary-btn file-label">匯入備份<input id="restoreInput" type="file" accept="application/json" hidden></label></div>
+    </div>
+
+    <div class="settings-card">
+      <h3>本機資料備份</h3>
+      <p class="muted">修改設定與每日紀錄也會保存在此裝置。建議保留本機備份作為第二層保障。</p>
+      <div class="stack-buttons">
+        <button id="backupBtn" class="secondary-btn">下載完整備份</button>
+        <label class="secondary-btn file-label">匯入備份<input id="restoreInput" type="file" accept="application/json" hidden></label>
       </div>
-      <div class="settings-card"><h3>版本資訊</h3><p>民宿房務管理系統 v1.0</p><p class="muted">離線使用、每日紀錄、庫存與匯出。</p></div>
-    </section>
-  </main>
+    </div>
 
-  <nav class="bottom-nav">
-    <button data-view="dashboardView" class="nav-btn active"><span>⌂</span>今日</button>
-    <button data-view="historyView" class="nav-btn"><span>▤</span>紀錄</button>
-    <button data-view="inventoryView" class="nav-btn"><span>□</span>庫存</button>
-    <button data-view="settingsView" class="nav-btn"><span>⚙</span>設定</button>
-  </nav>
+    <div class="settings-card">
+      <h3>恢復預設設定</h3>
+      <p class="muted">只會恢復房務區域與清單，不會刪除歷史紀錄或庫存。</p>
+      <button id="resetTemplatesBtn" class="secondary-btn danger-text full">恢復預設房務清單</button>
+    </div>
+  </section>
+</main>
 
-  <dialog id="installDialog"><form method="dialog"><h2>安裝到 iPad</h2><ol><li>用 Safari 開啟系統網址。</li><li>點「分享」。</li><li>選「加入主畫面」。</li><li>若出現「以 Web App 打開」，請開啟後按「加入」。</li></ol><p class="muted">安裝後可從主畫面開啟，載入過的頁面可離線使用。</p><button class="primary-btn full">知道了</button></form></dialog>
+<nav class="bottom-nav">
+  <button data-view="dashboardView" class="nav-btn active"><span>⌂</span>今日</button>
+  <button data-view="historyView" class="nav-btn"><span>▤</span>紀錄</button>
+  <button data-view="inventoryView" class="nav-btn"><span>□</span>庫存</button>
+  <button data-view="settingsView" class="nav-btn"><span>⚙</span>設定</button>
+</nav>
 
-  <dialog id="inventoryDialog"><form id="inventoryForm"><h2 id="inventoryDialogTitle">新增備品</h2><input id="inventoryId" type="hidden"><label>品項名稱<input id="inventoryName" required maxlength="30"></label><label>目前數量<input id="inventoryQty" type="number" min="0" step="1" required></label><label>最低安全量<input id="inventoryMin" type="number" min="0" step="1" required></label><label>單位<input id="inventoryUnit" placeholder="瓶、包、個" maxlength="10" required></label><div class="dialog-actions"><button type="button" id="cancelInventoryBtn" class="secondary-btn">取消</button><button type="submit" class="primary-btn">儲存</button></div></form></dialog>
-  <script src="./app.js"></script>
+<dialog id="inventoryDialog">
+<form id="inventoryForm">
+  <h2 id="inventoryDialogTitle">新增備品</h2>
+  <input id="inventoryId" type="hidden">
+  <label>品項名稱<input id="inventoryName" required maxlength="30"></label>
+  <label>目前數量<input id="inventoryQty" type="number" min="0" required></label>
+  <label>最低安全量<input id="inventoryMin" type="number" min="0" required></label>
+  <label>單位<input id="inventoryUnit" required maxlength="10"></label>
+  <div class="dialog-actions"><button type="button" id="cancelInventoryBtn" class="secondary-btn">取消</button><button class="primary-btn">儲存</button></div>
+</form>
+</dialog>
+
+<dialog id="areaDialog">
+<form id="areaForm">
+  <h2 id="areaDialogTitle">新增區域</h2>
+  <input id="areaId" type="hidden">
+  <label>區域名稱<input id="areaName" required maxlength="30" placeholder="例如：201 雙人房"></label>
+  <label>圖示<input id="areaIcon" maxlength="4" placeholder="例如：🛏️"></label>
+  <div class="dialog-actions"><button type="button" id="cancelAreaBtn" class="secondary-btn">取消</button><button class="primary-btn">儲存</button></div>
+</form>
+</dialog>
+
+<dialog id="itemDialog">
+<form id="itemForm">
+  <h2 id="itemDialogTitle">新增工作項目</h2>
+  <input id="itemAreaId" type="hidden">
+  <input id="itemId" type="hidden">
+  <label>分類<input id="itemGroup" required maxlength="30" placeholder="例如：浴室"></label>
+  <label>工作內容<input id="itemText" required maxlength="80" placeholder="例如：清潔鏡子與洗手台"></label>
+  <div class="dialog-actions"><button type="button" id="cancelItemBtn" class="secondary-btn">取消</button><button class="primary-btn">儲存</button></div>
+</form>
+</dialog>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>

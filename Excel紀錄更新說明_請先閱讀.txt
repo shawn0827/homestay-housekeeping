@@ -1,0 +1,32 @@
+民宿房務管理系統 v5｜Excel 紀錄版
+================================
+
+新增功能
+1. 「紀錄」頁面的匯出按鈕改為真正的 Excel .xlsx。
+2. Google Drive 每日保存：
+   房務紀錄_YYYY-MM-DD.xlsx
+3. Google Drive 同時保存：
+   民宿房務_完整歷史紀錄.xlsx
+4. Excel 包含：
+   - 每日／歷史總覽
+   - 逐項房務明細
+   - 備註與完成時間
+   - 備品庫存
+   - SOP 設定
+5. 系統另保留：
+   民宿房務_系統還原備份.json
+   這個 JSON 用於把資料完整還原回 App，不建議刪除。
+
+更新 GitHub Pages
+1. 更新前先下載舊版 JSON 備份。
+2. 解壓縮 v5 ZIP。
+3. 將全部檔案與 icons 資料夾上傳到原 repository 根目錄並覆蓋。
+4. Commit changes。
+5. Safari 開啟網站重新整理。
+6. 完全關閉主畫面 App，再重新開啟。
+
+注意
+- Excel 元件從 SheetJS 官方 CDN 載入。
+- 第一次開啟新版時需要網路載入 Excel 元件。
+- Google Drive 同步本來就需要網路。
+- 本機 IndexedDB 紀錄不受影響，沒有網路仍可繼續打勾與保存。
