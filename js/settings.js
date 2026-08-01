@@ -24,31 +24,31 @@ function renderSettings(params = {}) {
 
       <div class="settings-menu">
         ${settingsRow(
-          './assets/icons/settings-basic.svg',
+          './icons/settings-basic.svg',
           '民宿基本資料與帳號',
           '民宿資料、Google 帳號與 Drive 同步',
           'profile'
         )}
         ${settingsRow(
-          './assets/icons/settings-areas.svg',
+          './icons/settings-areas.svg',
           '房務區域與 SOP',
           '房間、分類與工作項目',
           'areas'
         )}
         ${settingsRow(
-          './assets/icons/settings-maintenance.svg',
+          './icons/settings-maintenance.svg',
           '維修管理',
           '設備異常與進度',
           'route:maintenance'
         )}
         ${settingsRow(
-          './assets/icons/settings-finance.svg',
+          './icons/settings-finance.svg',
           '收支管理',
           '收入、訂金、退款與支出',
           'route:finance'
         )}
         ${settingsRow(
-          './assets/icons/settings-reports.svg',
+          './icons/settings-reports.svg',
           '報表與備份',
           'Excel、JSON 與還原',
           'route:reports'
@@ -168,7 +168,7 @@ function renderProfileSettings() {
             <div class="account-profile-avatar">
               ${account.picture
                 ? `<img src="${escapeHtml(account.picture)}" alt="Google 帳號頭像">`
-                : '<img class="account-default-icon" src="./assets/icons/account.svg" alt="">'}
+                : '<img class="account-default-icon" src="./icons/account.svg" alt="">'}
             </div>
 
             <div class="account-profile-copy">

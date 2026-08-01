@@ -4,10 +4,10 @@
 'use strict';
 
 const DASHBOARD_ICONS = {
-  clock: './assets/icons/alert-clock.svg',
-  inventory: './assets/icons/alert-inventory.svg',
-  maintenance: './assets/icons/alert-maintenance.svg',
-  ok: './assets/icons/alert-ok.svg'
+  clock: './icons/alert-clock.svg',
+  inventory: './icons/alert-inventory.svg',
+  maintenance: './icons/alert-maintenance.svg',
+  ok: './icons/alert-ok.svg'
 };
 
 /** 顯示今日營運主頁。 */

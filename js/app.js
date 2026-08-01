@@ -31,7 +31,7 @@ function updateHeader() {
   $('#accountName').textContent = account?.name || state.settings.userName || '民宿主人';
   $('#accountAvatar').innerHTML = account?.picture
     ? `<img src="${escapeHtml(account.picture)}" alt="帳號頭像">`
-    : '<img class="account-default-icon" src="./assets/icons/account.svg" alt="">';
+    : '<img class="account-default-icon" src="./icons/account.svg" alt="">';
 }
 
 function bindGlobalEvents() {
