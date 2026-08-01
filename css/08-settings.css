@@ -136,3 +136,49 @@
   margin: 16px 0 0;
   line-height: 1.65;
 }
+
+
+/* Google Drive 雙重備份狀態。 */
+.cloud-backup-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cloud-backup-item {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 13px;
+  background: var(--surface-soft);
+}
+
+.cloud-backup-item span,
+.cloud-backup-item strong {
+  display: block;
+}
+
+.cloud-backup-item span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cloud-backup-item strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+@media (max-width: 560px) {
+  .cloud-backup-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.google-signin-container {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+}
