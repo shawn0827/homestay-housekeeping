@@ -1,33 +1,744 @@
-<!doctype html><html lang="zh-Hant"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#91AA6C"><meta name="apple-mobile-web-app-capable" content="yes">
-<title>玖星吉民宿營運管理系統</title><link rel="manifest" href="./manifest.webmanifest?v=7.3.0"><link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png?v=7.3.0"><link rel="stylesheet" href="./styles.css"></head><body>
-<header class="app-header"><button id="homeTitleBtn" class="home-title-btn" aria-label="回到主頁"><div class="eyebrow">HOMESTAY OPERATIONS</div><h1 id="propertyTitle">我的民宿</h1></button><button id="headerUserBtn" class="header-user-btn" aria-label="開啟使用者設定"><span>👤</span><strong id="headerUserName">使用者</strong></button></header>
-<main>
-<section id="dashboardView" class="view active"><div class="hero"><div><span>今日營運</span><strong id="dashboardDate"></strong></div><button id="quickBookingBtn" class="light-btn">＋新增訂房</button></div><div id="kpiGrid" class="kpi-grid"></div><div class="section-head"><h2>提醒</h2></div><div id="alertsList"></div><div class="section-head"><h2>今日工作</h2></div><div id="todayCards" class="module-grid"></div></section>
-<section id="bookingsView" class="view"><div class="section-head"><div><div class="eyebrow">BOOKINGS</div><h2>入住與訂房</h2></div><button id="addBookingBtn" class="secondary-btn compact">＋新增</button></div><div class="filter-row"><input id="bookingMonth" type="month"><select id="bookingFilter"><option value="all">全部</option><option value="upcoming">即將入住</option><option value="stay">住宿中</option><option value="completed">已退房</option><option value="cancelled">已取消</option></select></div><div id="bookingList"></div></section>
-<section id="housekeepingView" class="view"><div class="section-head"><div><div class="eyebrow">HOUSEKEEPING</div><h2>房務管理</h2></div><input id="workDate" type="date"></div><div class="summary-card"><div><span class="muted-light">本日完成率</span><strong id="totalPercent">0%</strong></div><div class="progress"><div id="totalProgress"></div></div><p id="dayStatus"></p></div><div id="areaCards" class="area-grid"></div><div class="action-row"><button id="completeDayBtn" class="primary-btn">完成並保存今日房務</button><button id="resetDayBtn" class="secondary-btn danger-text">清除本日勾選</button></div></section>
-<section id="checklistView" class="view"><button id="backChecklistBtn" class="back-btn">← 返回房務</button><div class="section-head"><h2 id="checklistTitle"></h2><span id="areaPercent" class="pill">0%</span></div><div id="checklistGroups"></div><label class="card"><strong>備註／異常</strong><textarea id="areaNotes" rows="4"></textarea></label><label class="card"><strong>完工照片</strong><input id="areaPhotoInput" type="file" accept="image/*" capture="environment"><div id="photoPreview" class="photo-grid"></div></label><button id="finishAreaBtn" class="primary-btn full">儲存此區紀錄</button></section>
-<section id="inventoryView" class="view"><div class="section-head"><div><div class="eyebrow">INVENTORY</div><h2>備品管理</h2></div><button id="addInventoryBtn" class="secondary-btn compact">＋新增</button></div><div id="inventoryList"></div></section>
-<section id="maintenanceView" class="view"><div class="section-head"><div><div class="eyebrow">MAINTENANCE</div><h2>維修管理</h2></div><button id="addMaintenanceBtn" class="secondary-btn compact">＋新增</button></div><div id="maintenanceList"></div></section>
-<section id="financeView" class="view"><div class="section-head"><div><div class="eyebrow">FINANCE</div><h2>營收／訂金／退款</h2></div><button id="addTransactionBtn" class="secondary-btn compact">＋新增</button></div><div class="filter-row"><input id="financeMonth" type="month"><select id="financeFilter"><option value="all">全部</option><option value="income">收入</option><option value="deposit">訂金</option><option value="refund">退款</option><option value="expense">支出</option></select></div><div id="financeSummary" class="kpi-grid"></div><div id="transactionList"></div></section>
-<section id="analyticsView" class="view"><div class="section-head"><div><div class="eyebrow">ANALYTICS</div><h2>統計分析</h2></div><input id="analyticsMonth" type="month"></div><div id="analyticsCards" class="kpi-grid"></div><div class="card"><h3>各房間入住天數</h3><div id="roomAnalytics"></div></div><div class="card"><h3>平台營收</h3><div id="platformAnalytics"></div></div><div class="card"><h3>備品耗用</h3><div id="usageAnalytics"></div></div></section>
-<section id="settingsView" class="view"><div class="section-head"><div><div class="eyebrow">SETTINGS</div><h2>系統設定</h2></div></div><div class="settings-menu">
-<button class="settings-menu-row" data-page="basicPage"><span>🏡</span><div><strong>民宿基本資料</strong><small>名稱與房間</small></div><b>›</b></button>
-<button class="settings-menu-row" data-page="areasPage"><span>🧹</span><div><strong>房務區域與 SOP</strong><small>分層修改清單</small></div><b>›</b></button>
-<button class="settings-menu-row" data-page="googlePage"><span>☁️</span><div><strong>Google Drive</strong><small>雲端同步與還原</small></div><b>›</b></button>
-<button class="settings-menu-row" data-page="exportPage"><span>📊</span><div><strong>Excel 與備份</strong><small>完整營運紀錄</small></div><b>›</b></button>
-<button class="settings-menu-row" data-page="aboutPage"><span>ℹ️</span><div><strong>關於系統</strong><small>版本與資料庫</small></div><b>›</b></button></div></section>
-<section id="basicPage" class="view subview"><button class="back-btn settingsBack">← 返回設定</button><div class="section-head"><h2>民宿基本資料</h2></div><div class="card"><label>民宿名稱<input id="propertyNameInput"></label><label>使用者名稱<input id="userNameInput" placeholder="例如：小美、民宿主人"></label><button id="savePropertyBtn" class="primary-btn full">儲存</button></div><div class="card"><div class="section-head"><h3>房間</h3><button id="addRoomBtn" class="secondary-btn compact">＋新增</button></div><div id="roomList"></div></div></section>
-<section id="areasPage" class="view subview"><button class="back-btn settingsBack">← 返回設定</button><div class="section-head"><h2>房務區域</h2><button id="addAreaBtn" class="secondary-btn compact">＋新增</button></div><div id="settingsAreaList"></div></section>
-<section id="areaDetailPage" class="view subview"><button id="backAreasBtn" class="back-btn">← 返回區域</button><div class="section-head"><h2 id="settingsAreaTitle"></h2><button id="editAreaBtn" class="secondary-btn compact">修改</button></div><div id="settingsGroupList"></div><button id="deleteAreaBtn" class="secondary-btn danger-text full">刪除此區域</button></section>
-<section id="groupDetailPage" class="view subview"><button id="backAreaDetailBtn" class="back-btn">← 返回區域</button><div class="section-head"><h2 id="settingsGroupTitle"></h2><button id="addSopItemBtn" class="secondary-btn compact">＋新增</button></div><div id="settingsItemList"></div></section>
-<section id="googlePage" class="view subview"><button class="back-btn settingsBack">← 返回設定</button><div class="section-head"><h2>Google Drive</h2></div><div class="card"><label>OAuth Client ID<input id="googleClientIdInput"></label><label>備份資料夾<input id="googleFolderNameInput"></label><label class="toggle"><input id="googleAutoSyncInput" type="checkbox">完成重要操作後自動同步</label><div id="googleStatus" class="status-box">尚未連線</div><div class="stack"><button id="saveGoogleBtn" class="secondary-btn">儲存設定</button><button id="connectGoogleBtn" class="primary-btn">連接 Google</button><button id="syncGoogleBtn" class="secondary-btn">立即同步</button><button id="restoreGoogleBtn" class="secondary-btn">從雲端還原</button><button id="disconnectGoogleBtn" class="secondary-btn danger-text">中斷連線</button></div></div></section>
-<section id="exportPage" class="view subview"><button class="back-btn settingsBack">← 返回設定</button><div class="section-head"><h2>Excel 與備份</h2></div><div class="card"><button id="exportExcelBtn" class="primary-btn full">匯出完整營運 Excel</button></div><div class="card"><div class="stack"><button id="backupJsonBtn" class="secondary-btn">下載系統備份 JSON</button><label class="secondary-btn file-label">匯入 JSON<input id="restoreJsonInput" type="file" accept="application/json" hidden></label></div></div></section>
-<section id="aboutPage" class="view subview"><button class="back-btn settingsBack">← 返回設定</button><div class="card"><h2>民宿營運管理系統</h2><p>Version 7.1.0 Phase 3</p><p>IndexedDB＋Google Drive＋Excel</p></div></section>
-</main>
-<nav class="bottom-nav"><button data-view="dashboardView" class="nav-btn active"><span>⌂</span>主頁</button><button data-view="bookingsView" class="nav-btn"><span>▣</span>訂房</button><button data-view="housekeepingView" class="nav-btn"><span>✓</span>房務</button><button id="moreNavBtn" class="nav-btn"><span>•••</span>更多</button></nav>
-<dialog id="moreDialog"><form method="dialog"><h2>更多功能</h2><div class="dialog-menu"><button data-open="inventoryView">🧴 備品管理</button><button data-open="maintenanceView">🛠 維修管理</button><button data-open="financeView">💰 營收與退款</button><button data-open="analyticsView">📈 統計分析</button><button data-open="settingsView">⚙ 系統設定</button></div><button class="secondary-btn full">關閉</button></form></dialog>
-<dialog id="bookingDialog"><form id="bookingForm"><h2 id="bookingDialogTitle">新增訂房</h2><input id="bookingId" type="hidden"><label>客人姓名<input id="guestName" required></label><label>聯絡電話<input id="guestPhone"></label><label>房間<select id="bookingRoom" required></select></label><div class="two-col"><label>入住日期<input id="checkInDate" type="date" required></label><label>退房日期<input id="checkOutDate" type="date" required></label></div><label>預計入住時間<input id="checkInTime" type="time" value="15:00"><small class="field-help">主頁會依此時間顯示今日入住提醒。</small></label><div class="two-col"><label>人數<input id="guestCount" type="number" min="1" value="2"></label><label>平台<select id="bookingPlatform"><option>官網／直接訂房</option><option>Booking</option><option>Airbnb</option><option>Agoda</option><option>其他</option></select></label></div><label>總房價<input id="bookingAmount" type="number" min="0"></label><label>訂金<input id="bookingDeposit" type="number" min="0"></label><label>狀態<select id="bookingStatus"><option value="confirmed">已確認</option><option value="checkedin">已入住</option><option value="completed">已退房</option><option value="cancelled">已取消</option></select></label><label>備註<textarea id="bookingNotes"></textarea></label><div class="dialog-actions"><button type="button" class="secondary-btn closeDialog">取消</button><button class="primary-btn">儲存</button></div></form></dialog>
-<dialog id="simpleDialog"><form id="simpleForm"><h2 id="simpleTitle"></h2><div id="simpleFields"></div><div class="dialog-actions"><button type="button" class="secondary-btn closeDialog">取消</button><button class="primary-btn">儲存</button></div></form></dialog>
-<script src="https://accounts.google.com/gsi/client" async defer></script><script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script><script src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-Hant">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+  <meta content="#315f57" name="theme-color"/>
+  <meta content="yes" name="apple-mobile-web-app-capable"/>
+  <title>
+   民宿營運管理系統
+  </title>
+  <link href="./manifest.webmanifest" rel="manifest"/>
+  <link href="./icons/icon-192.png" rel="apple-touch-icon"/>
+  <link href="./styles.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <header class="app-header">
+   <button aria-label="回到主頁" class="home-title-btn" id="homeTitleBtn">
+    <div class="eyebrow">
+     HOMESTAY OPERATIONS
+    </div>
+    <h1 id="propertyTitle">
+     我的民宿
+    </h1>
+   </button>
+   <button aria-label="開啟使用者設定" class="header-user-btn" id="headerUserBtn">
+    <span>
+     👤
+    </span>
+    <strong id="headerUserName">
+     使用者
+    </strong>
+   </button>
+  </header>
+  <main>
+   <section class="view active" id="dashboardView">
+    <div class="hero">
+     <div>
+      <span>
+       今日營運
+      </span>
+      <strong id="dashboardDate">
+      </strong>
+     </div>
+     <button class="light-btn" id="quickBookingBtn">
+      ＋新增訂房
+     </button>
+    </div>
+    <div class="kpi-grid" id="kpiGrid">
+    </div>
+    <div class="section-head">
+     <h2>
+      提醒
+     </h2>
+    </div>
+    <div id="alertsList">
+    </div>
+    <div class="section-head">
+     <h2>
+      今日工作
+     </h2>
+    </div>
+    <div class="module-grid" id="todayCards">
+    </div>
+   </section>
+   <section class="view" id="bookingsView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       BOOKINGS
+      </div>
+      <h2>
+       入住與訂房
+      </h2>
+     </div>
+     <button class="secondary-btn compact" id="addBookingBtn">
+      ＋新增
+     </button>
+    </div>
+    <div class="filter-row">
+     <input id="bookingMonth" type="month"/>
+     <select id="bookingFilter">
+      <option value="all">
+       全部
+      </option>
+      <option value="upcoming">
+       即將入住
+      </option>
+      <option value="stay">
+       住宿中
+      </option>
+      <option value="completed">
+       已退房
+      </option>
+      <option value="cancelled">
+       已取消
+      </option>
+     </select>
+    </div>
+    <div id="bookingList">
+    </div>
+   </section>
+   <section class="view" id="housekeepingView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       HOUSEKEEPING
+      </div>
+      <h2>
+       房務管理
+      </h2>
+     </div>
+     <input id="workDate" type="date"/>
+    </div>
+    <div class="summary-card">
+     <div>
+      <span class="muted-light">
+       本日完成率
+      </span>
+      <strong id="totalPercent">
+       0%
+      </strong>
+     </div>
+     <div class="progress">
+      <div id="totalProgress">
+      </div>
+     </div>
+     <p id="dayStatus">
+     </p>
+    </div>
+    <div class="area-grid" id="areaCards">
+    </div>
+    <div class="action-row">
+     <button class="primary-btn" id="completeDayBtn">
+      完成並保存今日房務
+     </button>
+     <button class="secondary-btn danger-text" id="resetDayBtn">
+      清除本日勾選
+     </button>
+    </div>
+   </section>
+   <section class="view" id="checklistView">
+    <button class="back-btn" id="backChecklistBtn">
+     &larr; 返回房務
+    </button>
+    <div class="section-head">
+     <h2 id="checklistTitle">
+     </h2>
+     <span class="pill" id="areaPercent">
+      0%
+     </span>
+    </div>
+    <div id="checklistGroups">
+    </div>
+    <label class="card">
+     <strong>
+      備註／異常
+     </strong>
+     <textarea id="areaNotes" rows="4"></textarea>
+    </label>
+    <label class="card">
+     <strong>
+      完工照片
+     </strong>
+     <input accept="image/*" capture="environment" id="areaPhotoInput" type="file"/>
+     <div class="photo-grid" id="photoPreview">
+     </div>
+    </label>
+    <button class="primary-btn full" id="finishAreaBtn">
+     儲存此區紀錄
+    </button>
+   </section>
+   <section class="view" id="inventoryView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       INVENTORY
+      </div>
+      <h2>
+       備品管理
+      </h2>
+     </div>
+     <button class="secondary-btn compact" id="addInventoryBtn">
+      ＋新增
+     </button>
+    </div>
+    <div id="inventoryList">
+    </div>
+   </section>
+   <section class="view" id="maintenanceView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       MAINTENANCE
+      </div>
+      <h2>
+       維修管理
+      </h2>
+     </div>
+     <button class="secondary-btn compact" id="addMaintenanceBtn">
+      ＋新增
+     </button>
+    </div>
+    <div id="maintenanceList">
+    </div>
+   </section>
+   <section class="view" id="financeView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       FINANCE
+      </div>
+      <h2>
+       營收／訂金／退款
+      </h2>
+     </div>
+     <button class="secondary-btn compact" id="addTransactionBtn">
+      ＋新增
+     </button>
+    </div>
+    <div class="filter-row">
+     <input id="financeMonth" type="month"/>
+     <select id="financeFilter">
+      <option value="all">
+       全部
+      </option>
+      <option value="income">
+       收入
+      </option>
+      <option value="deposit">
+       訂金
+      </option>
+      <option value="refund">
+       退款
+      </option>
+      <option value="expense">
+       支出
+      </option>
+     </select>
+    </div>
+    <div class="kpi-grid" id="financeSummary">
+    </div>
+    <div id="transactionList">
+    </div>
+   </section>
+   <section class="view" id="analyticsView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       ANALYTICS
+      </div>
+      <h2>
+       統計分析
+      </h2>
+     </div>
+     <input id="analyticsMonth" type="month"/>
+    </div>
+    <div class="kpi-grid" id="analyticsCards">
+    </div>
+    <div class="card">
+     <h3>
+      各房間入住天數
+     </h3>
+     <div id="roomAnalytics">
+     </div>
+    </div>
+    <div class="card">
+     <h3>
+      平台營收
+     </h3>
+     <div id="platformAnalytics">
+     </div>
+    </div>
+    <div class="card">
+     <h3>
+      備品耗用
+     </h3>
+     <div id="usageAnalytics">
+     </div>
+    </div>
+   </section>
+   <section class="view" id="settingsView">
+    <div class="section-head">
+     <div>
+      <div class="eyebrow">
+       SETTINGS
+      </div>
+      <h2>
+       系統設定
+      </h2>
+     </div>
+    </div>
+    <div class="settings-menu">
+     <button class="settings-menu-row" data-page="basicPage">
+      <span>
+       🏡
+      </span>
+      <div>
+       <strong>
+        民宿基本資料
+       </strong>
+       <small>
+        名稱與房間
+       </small>
+      </div>
+      <b>
+       &rsaquo;
+      </b>
+     </button>
+     <button class="settings-menu-row" data-page="areasPage">
+      <span>
+       🧹
+      </span>
+      <div>
+       <strong>
+        房務區域與 SOP
+       </strong>
+       <small>
+        分層修改清單
+       </small>
+      </div>
+      <b>
+       &rsaquo;
+      </b>
+     </button>
+     <button class="settings-menu-row" data-page="googlePage">
+      <span>
+       ☁️
+      </span>
+      <div>
+       <strong>
+        Google Drive
+       </strong>
+       <small>
+        雲端同步與還原
+       </small>
+      </div>
+      <b>
+       &rsaquo;
+      </b>
+     </button>
+     <button class="settings-menu-row" data-page="exportPage">
+      <span>
+       📊
+      </span>
+      <div>
+       <strong>
+        Excel 與備份
+       </strong>
+       <small>
+        完整營運紀錄
+       </small>
+      </div>
+      <b>
+       &rsaquo;
+      </b>
+     </button>
+     <button class="settings-menu-row" data-page="aboutPage">
+      <span>
+       ℹ️
+      </span>
+      <div>
+       <strong>
+        關於系統
+       </strong>
+       <small>
+        版本與資料庫
+       </small>
+      </div>
+      <b>
+       &rsaquo;
+      </b>
+     </button>
+    </div>
+   </section>
+   <section class="view subview" id="basicPage">
+    <button class="back-btn settingsBack">
+     &larr; 返回設定
+    </button>
+    <div class="section-head">
+     <h2>
+      民宿基本資料
+     </h2>
+    </div>
+    <div class="card">
+     <label>
+      民宿名稱
+      <input id="propertyNameInput"/>
+     </label>
+     <label>
+      使用者名稱
+      <input id="userNameInput" placeholder="例如：小美、民宿主人"/>
+     </label>
+     <button class="primary-btn full" id="savePropertyBtn">
+      儲存
+     </button>
+    </div>
+    <div class="card">
+     <div class="section-head">
+      <h3>
+       房間
+      </h3>
+      <button class="secondary-btn compact" id="addRoomBtn">
+       ＋新增
+      </button>
+     </div>
+     <div id="roomList">
+     </div>
+    </div>
+   </section>
+   <section class="view subview" id="areasPage">
+    <button class="back-btn settingsBack">
+     &larr; 返回設定
+    </button>
+    <div class="section-head">
+     <h2>
+      房務區域
+     </h2>
+     <button class="secondary-btn compact" id="addAreaBtn">
+      ＋新增
+     </button>
+    </div>
+    <div id="settingsAreaList">
+    </div>
+   </section>
+   <section class="view subview" id="areaDetailPage">
+    <button class="back-btn" id="backAreasBtn">
+     &larr; 返回區域
+    </button>
+    <div class="section-head">
+     <h2 id="settingsAreaTitle">
+     </h2>
+     <button class="secondary-btn compact" id="editAreaBtn">
+      修改
+     </button>
+    </div>
+    <div id="settingsGroupList">
+    </div>
+    <button class="secondary-btn danger-text full" id="deleteAreaBtn">
+     刪除此區域
+    </button>
+   </section>
+   <section class="view subview" id="groupDetailPage">
+    <button class="back-btn" id="backAreaDetailBtn">
+     &larr; 返回區域
+    </button>
+    <div class="section-head">
+     <h2 id="settingsGroupTitle">
+     </h2>
+     <button class="secondary-btn compact" id="addSopItemBtn">
+      ＋新增
+     </button>
+    </div>
+    <div id="settingsItemList">
+    </div>
+   </section>
+   <section class="view subview" id="googlePage">
+    <button class="back-btn settingsBack">
+     &larr; 返回設定
+    </button>
+    <div class="section-head">
+     <h2>
+      Google Drive
+     </h2>
+    </div>
+    <div class="card">
+     <label>
+      OAuth Client ID
+      <input id="googleClientIdInput"/>
+     </label>
+     <label>
+      備份資料夾
+      <input id="googleFolderNameInput"/>
+     </label>
+     <label class="toggle">
+      <input id="googleAutoSyncInput" type="checkbox"/>
+      完成重要操作後自動同步
+     </label>
+     <div class="status-box" id="googleStatus">
+      尚未連線
+     </div>
+     <div class="stack">
+      <button class="secondary-btn" id="saveGoogleBtn">
+       儲存設定
+      </button>
+      <button class="primary-btn" id="connectGoogleBtn">
+       連接 Google
+      </button>
+      <button class="secondary-btn" id="syncGoogleBtn">
+       立即同步
+      </button>
+      <button class="secondary-btn" id="restoreGoogleBtn">
+       從雲端還原
+      </button>
+      <button class="secondary-btn danger-text" id="disconnectGoogleBtn">
+       中斷連線
+      </button>
+     </div>
+    </div>
+   </section>
+   <section class="view subview" id="exportPage">
+    <button class="back-btn settingsBack">
+     &larr; 返回設定
+    </button>
+    <div class="section-head">
+     <h2>
+      Excel 與備份
+     </h2>
+    </div>
+    <div class="card">
+     <button class="primary-btn full" id="exportExcelBtn">
+      匯出完整營運 Excel
+     </button>
+    </div>
+    <div class="card">
+     <div class="stack">
+      <button class="secondary-btn" id="backupJsonBtn">
+       下載系統備份 JSON
+      </button>
+      <label class="secondary-btn file-label">
+       匯入 JSON
+       <input accept="application/json" hidden="" id="restoreJsonInput" type="file"/>
+      </label>
+     </div>
+    </div>
+   </section>
+   <section class="view subview" id="aboutPage">
+    <button class="back-btn settingsBack">
+     &larr; 返回設定
+    </button>
+    <div class="card">
+     <h2>
+      民宿營運管理系統
+     </h2>
+     <p>
+      Version 7.1.0 Phase 3
+     </p>
+     <p>
+      IndexedDB＋Google Drive＋Excel
+     </p>
+    </div>
+   </section>
+  </main>
+  <nav class="bottom-nav">
+   <button class="nav-btn active" data-view="dashboardView">
+    <span>
+     ⌂
+    </span>
+    主頁
+   </button>
+   <button class="nav-btn" data-view="bookingsView">
+    <span>
+     ▣
+    </span>
+    訂房
+   </button>
+   <button class="nav-btn" data-view="housekeepingView">
+    <span>
+     &checkmark;
+    </span>
+    房務
+   </button>
+   <button class="nav-btn" id="moreNavBtn">
+    <span>
+     &bull;&bull;&bull;
+    </span>
+    更多
+   </button>
+  </nav>
+  <dialog id="moreDialog">
+   <form method="dialog">
+    <h2>
+     更多功能
+    </h2>
+    <div class="dialog-menu">
+     <button data-open="inventoryView">
+      🧴 備品管理
+     </button>
+     <button data-open="maintenanceView">
+      🛠 維修管理
+     </button>
+     <button data-open="financeView">
+      💰 營收與退款
+     </button>
+     <button data-open="analyticsView">
+      📈 統計分析
+     </button>
+     <button data-open="settingsView">
+      ⚙ 系統設定
+     </button>
+    </div>
+    <button class="secondary-btn full">
+     關閉
+    </button>
+   </form>
+  </dialog>
+  <dialog id="bookingDialog">
+   <form id="bookingForm">
+    <h2 id="bookingDialogTitle">
+     新增訂房
+    </h2>
+    <input id="bookingId" type="hidden"/>
+    <label>
+     客人姓名
+     <input id="guestName" required=""/>
+    </label>
+    <label>
+     聯絡電話
+     <input id="guestPhone"/>
+    </label>
+    <label>
+     房間
+     <select id="bookingRoom" required="">
+     </select>
+    </label>
+    <div class="two-col">
+     <label>
+      入住日期
+      <input id="checkInDate" required="" type="date"/>
+     </label>
+     <label>
+      退房日期
+      <input id="checkOutDate" required="" type="date"/>
+     </label>
+    </div>
+    <label>
+     預計入住時間
+     <input id="checkInTime" type="time" value="15:00"/>
+     <small class="field-help">
+      主頁會依此時間顯示今日入住提醒。
+     </small>
+    </label>
+    <div class="two-col">
+     <label>
+      人數
+      <input id="guestCount" min="1" type="number" value="2"/>
+     </label>
+     <label>
+      平台
+      <select id="bookingPlatform">
+       <option>
+        官網／直接訂房
+       </option>
+       <option>
+        Booking
+       </option>
+       <option>
+        Airbnb
+       </option>
+       <option>
+        Agoda
+       </option>
+       <option>
+        其他
+       </option>
+      </select>
+     </label>
+    </div>
+    <label>
+     總房價
+     <input id="bookingAmount" min="0" type="number"/>
+    </label>
+    <label>
+     訂金
+     <input id="bookingDeposit" min="0" type="number"/>
+    </label>
+    <label>
+     狀態
+     <select id="bookingStatus">
+      <option value="confirmed">
+       已確認
+      </option>
+      <option value="checkedin">
+       已入住
+      </option>
+      <option value="completed">
+       已退房
+      </option>
+      <option value="cancelled">
+       已取消
+      </option>
+     </select>
+    </label>
+    <label>
+     備註
+     <textarea id="bookingNotes"></textarea>
+    </label>
+    <div class="dialog-actions">
+     <button class="secondary-btn closeDialog" type="button">
+      取消
+     </button>
+     <button class="primary-btn">
+      儲存
+     </button>
+    </div>
+   </form>
+  </dialog>
+  <dialog id="simpleDialog">
+   <form id="simpleForm">
+    <h2 id="simpleTitle">
+    </h2>
+    <div id="simpleFields">
+    </div>
+    <div class="dialog-actions">
+     <button class="secondary-btn closeDialog" type="button">
+      取消
+     </button>
+     <button class="primary-btn">
+      儲存
+     </button>
+    </div>
+   </form>
+  </dialog>
+  <script async="" defer="" src="https://accounts.google.com/gsi/client">
+  </script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js">
+  </script>
+  <!-- 系統模組：core.js 必須最先載入，app.js 必須最後載入 -->
+  <script src="./js/core.js">
+  </script>
+  <script src="./js/dashboard.js">
+  </script>
+  <script src="./js/bookings.js">
+  </script>
+  <script src="./js/housekeeping.js">
+  </script>
+  <script src="./js/inventory.js">
+  </script>
+  <script src="./js/maintenance.js">
+  </script>
+  <script src="./js/finance.js">
+  </script>
+  <script src="./js/analytics.js">
+  </script>
+  <script src="./js/settings.js">
+  </script>
+  <script src="./js/reports.js">
+  </script>
+  <script src="./js/google.js">
+  </script>
+  <script src="./js/app.js">
+  </script>
+ </body>
+</html>
+
