@@ -173,12 +173,3 @@
     grid-template-columns: 1fr;
   }
 }
-
-
-.google-signin-container {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  justify-content: center;
-  margin: 20px 0;
-}
