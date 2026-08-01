@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#315f57">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="民宿房務">
+  <title>民宿房務管理系統</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div><div class="eyebrow">HOUSEKEEPING</div><h1 id="propertyTitle">我的民宿</h1></div>
+    <button id="installHelpBtn" class="icon-btn">安裝</button>
+  </header>
+
+  <main>
+    <section id="dashboardView" class="view active">
+      <div class="date-card">
+        <button id="prevDateBtn" class="date-arrow">‹</button>
+        <label><span>工作日期</span><input id="workDate" type="date"></label>
+        <button id="nextDateBtn" class="date-arrow">›</button>
+      </div>
+      <div class="summary-card">
+        <div><span class="muted">今日完成率</span><strong id="totalPercent">0%</strong></div>
+        <div class="progress"><div id="totalProgress"></div></div>
+        <p id="dayStatus">尚未完成</p>
+      </div>
+      <div id="areaCards" class="area-grid"></div>
+      <div class="action-row">
+        <button id="completeDayBtn" class="primary-btn">完成並保存今日紀錄</button>
+        <button id="resetDayBtn" class="secondary-btn danger-text">清除本日勾選</button>
+      </div>
+    </section>
+
+    <section id="checklistView" class="view">
+      <button id="backBtn" class="back-btn">← 返回首頁</button>
+      <div class="section-title-row"><div><div class="eyebrow">CHECKLIST</div><h2 id="checklistTitle">房務清單</h2></div><span id="areaPercent" class="percent-pill">0%</span></div>
+      <div id="checklistGroups"></div>
+      <label class="notes-card"><span>備註／異常紀錄</span><textarea id="areaNotes" rows="4" placeholder="例如：吹風機異常、床單污損、發現遺留物……"></textarea></label>
+      <button id="finishAreaBtn" class="primary-btn full">儲存此區紀錄</button>
+    </section>
+
+    <section id="historyView" class="view">
+      <div class="section-title-row"><div><div class="eyebrow">HISTORY</div><h2>工作紀錄</h2></div></div>
+      <div class="filter-row"><input id="historyMonth" type="month"><button id="exportCsvBtn" class="secondary-btn compact">匯出 CSV</button></div>
+      <div id="historyList"></div>
+    </section>
+
+    <section id="inventoryView" class="view">
+      <div class="section-title-row"><div><div class="eyebrow">INVENTORY</div><h2>備品庫存</h2></div><button id="addInventoryBtn" class="secondary-btn compact">＋新增</button></div>
+      <div id="inventoryList"></div>
+    </section>
+
+    <section id="settingsView" class="view">
+      <div class="section-title-row"><div><div class="eyebrow">SETTINGS</div><h2>設定與備份</h2></div></div>
+      <div class="settings-card">
+        <label>民宿名稱<input id="propertyNameInput" type="text" maxlength="30"></label>
+        <button id="saveSettingsBtn" class="primary-btn full">儲存名稱</button>
+      </div>
+      <div class="settings-card">
+        <h3>資料備份</h3><p class="muted">資料儲存在目前裝置的瀏覽器內，建議定期備份。</p>
+        <div class="stack-buttons"><button id="backupBtn" class="secondary-btn">下載完整備份（JSON）</button><label class="secondary-btn file-label">匯入備份<input id="restoreInput" type="file" accept="application/json" hidden></label></div>
+      </div>
+      <div class="settings-card"><h3>版本資訊</h3><p>民宿房務管理系統 v1.0</p><p class="muted">離線使用、每日紀錄、庫存與匯出。</p></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-view="dashboardView" class="nav-btn active"><span>⌂</span>今日</button>
+    <button data-view="historyView" class="nav-btn"><span>▤</span>紀錄</button>
+    <button data-view="inventoryView" class="nav-btn"><span>□</span>庫存</button>
+    <button data-view="settingsView" class="nav-btn"><span>⚙</span>設定</button>
+  </nav>
+
+  <dialog id="installDialog"><form method="dialog"><h2>安裝到 iPad</h2><ol><li>用 Safari 開啟系統網址。</li><li>點「分享」。</li><li>選「加入主畫面」。</li><li>若出現「以 Web App 打開」，請開啟後按「加入」。</li></ol><p class="muted">安裝後可從主畫面開啟，載入過的頁面可離線使用。</p><button class="primary-btn full">知道了</button></form></dialog>
+
+  <dialog id="inventoryDialog"><form id="inventoryForm"><h2 id="inventoryDialogTitle">新增備品</h2><input id="inventoryId" type="hidden"><label>品項名稱<input id="inventoryName" required maxlength="30"></label><label>目前數量<input id="inventoryQty" type="number" min="0" step="1" required></label><label>最低安全量<input id="inventoryMin" type="number" min="0" step="1" required></label><label>單位<input id="inventoryUnit" placeholder="瓶、包、個" maxlength="10" required></label><div class="dialog-actions"><button type="button" id="cancelInventoryBtn" class="secondary-btn">取消</button><button type="submit" class="primary-btn">儲存</button></div></form></dialog>
+  <script src="./app.js"></script>
+</body>
+</html>
