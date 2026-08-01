@@ -3,7 +3,7 @@
    ================================================================ */
 'use strict';
 
-const APP_VERSION = '9.0.0';
+const APP_VERSION = '9.1.0';
 const DB_NAME = 'homestay_operation_v9';
 const DB_VERSION = 1;
 const STORE_NAME = 'state';
@@ -76,7 +76,7 @@ function defaultState() {
       propertyName: '我的民宿',
       userName: '民宿主人',
       google: { clientId: '', folderName: '民宿營運管理系統備份', autoSync: true, folderId: '', backupFileId: '' },
-      account: { name: '', email: '', picture: '' }
+      account: { connected: false, name: '', email: '', picture: '', connectedAt: '' }
     },
     areas: defaultAreas(),
     bookings: [],
@@ -123,6 +123,8 @@ function migrateState() {
   const defaults = defaultState();
   state.settings ||= defaults.settings;
   state.settings.account ||= defaults.settings.account;
+  state.settings.account.connected = Boolean(state.settings.account.connected || state.settings.account.email);
+  state.settings.account.connectedAt ||= '';
   state.settings.google ||= defaults.settings.google;
   state.areas ||= defaults.areas;
   state.bookings ||= [];

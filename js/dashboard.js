@@ -12,7 +12,7 @@ function renderDashboard() {
   const month = date.slice(0, 7);
   const net = monthlyNet(month);
 
-  $('#app').innerHTML = `<section class="page">
+  $('#app').innerHTML = `<section class="page page-home">
     ${pageHeader({ eyebrow: 'TODAY', title: '今日營運', subtitle: date, actions: '<button class="primary-button" data-action="quick-booking">＋新增訂房</button>' })}
     <div class="grid grid-4" id="dashboardKpis">
       ${dashboardKpi('今日入住', arrivals.length, '查看今日入住', 'checkin')}

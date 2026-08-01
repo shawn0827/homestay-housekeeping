@@ -74,6 +74,7 @@ async function startApplication() {
   bindGlobalEvents();
   if (!location.hash) navigate('home', {}, { replace: true });
   else renderRoute();
+  initializePersistentGoogleAccount().catch(console.warn);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.error);
 }
 
