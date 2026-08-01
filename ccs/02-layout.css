@@ -1,0 +1,225 @@
+/* ================================================================
+   02-layout.css — 頁首、內容區、頁面標題與底部導覽
+   ================================================================ */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding:
+    calc(12px + env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    12px
+    max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--line);
+  background: rgba(245, 244, 239, 0.94);
+  backdrop-filter: blur(16px);
+}
+
+.brand-button,
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  color: var(--text);
+}
+
+.brand-button {
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+}
+
+.brand-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  object-fit: contain;
+}
+
+.brand-copy {
+  min-width: 0;
+  text-align: left;
+}
+
+.brand-copy small {
+  display: block;
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.brand-copy strong {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  font-size: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-button {
+  max-width: 190px;
+  padding: 8px 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.account-button > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface-soft);
+}
+
+.account-avatar img,
+.account-default-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-default-icon {
+  padding: 3px;
+  object-fit: contain;
+}
+
+.app-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding:
+    18px
+    max(16px, env(safe-area-inset-right))
+    28px
+    max(16px, env(safe-area-inset-left));
+}
+
+.page {
+  animation: page-in 0.18s ease;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  margin: 2px 0 4px;
+  font-size: clamp(25px, 4vw, 34px);
+}
+
+.eyebrow {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding:
+    7px
+    max(7px, env(safe-area-inset-right))
+    calc(7px + env(safe-area-inset-bottom))
+    max(7px, env(safe-area-inset-left));
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
+}
+
+.bottom-nav button {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.nav-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  max-height: 24px;
+  object-fit: contain;
+  opacity: 0.62;
+  transition: transform 0.16s ease, opacity 0.16s ease;
+}
+
+.nav-label {
+  line-height: 1.2;
+}
+
+.bottom-nav button.active {
+  background: var(--surface-soft);
+  color: var(--brand);
+}
+
+.bottom-nav button.active .nav-icon {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
