@@ -1,9 +1,8 @@
 /* ================================================================
-   sw.js — v10.2 離線快取
-   發布新版或替換圖示後，請增加 CACHE_VERSION。
+   sw.js — v10.4.1 離線快取
+   僅快取本站靜態資源；外部 API、Google OAuth 與 CDN 不進入快取。
    ================================================================ */
-const CACHE_VERSION = 'homestay-v10-4-0';
-
+const CACHE_VERSION = 'homestay-v10-4-1';
 const ASSETS = [
   "./",
   "./index.html",
@@ -79,17 +78,35 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then(
-        cached => cached || caches.match('./index.html')
-      ))
-  );
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => response)
+        .catch(async () => (
+          await caches.match(request)
+          || await caches.match('./index.html')
+          || Response.error()
+        ))
+    );
+    return;
+  }
+
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type === 'basic') {
+        const cache = await caches.open(CACHE_VERSION);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch (error) {
+      return await caches.match(request) || Response.error();
+    }
+  })());
 });
