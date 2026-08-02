@@ -1,6 +1,5 @@
 /* bookings.js — 訂房、入住與退房管理 */
 'use strict';
-
 function renderBookings(params = {}) {
   const month = params.month || params.date?.slice(0, 7) || today().slice(0, 7);
   const filter = params.filter || 'all';
@@ -19,7 +18,6 @@ function renderBookings(params = {}) {
   $$('[data-booking-status]').forEach(button => button.onclick = () => updateBookingStatus(button.dataset.bookingStatus, button.dataset.status));
   $$('[data-booking-delete]').forEach(button => button.onclick = () => deleteBooking(button.dataset.bookingDelete));
 }
-
 function filterBookings({ month, filter, date }) {
   return state.bookings.filter(item => {
     if (filter === 'checkin') return item.checkIn === date && item.status !== 'cancelled';
@@ -30,7 +28,6 @@ function filterBookings({ month, filter, date }) {
     return item.checkIn.startsWith(month) || item.checkOut.startsWith(month);
   }).sort((a, b) => `${a.checkIn}${a.checkInTime}`.localeCompare(`${b.checkIn}${b.checkInTime}`));
 }
-
 function bookingFilterLabel(filter, date) {
   return ({ checkin: `${date} 今日入住`, checkout: `${date} 今日退房`, staying: `${date} 住宿中`, confirmed: '已確認訂房', cancelled: '已取消訂房', all: '全部訂房' })[filter] || '全部訂房';
 }
@@ -38,59 +35,36 @@ function bookingFilterLabel(filter, date) {
 function bookingFilterOptions(selected) {
   return [['all','全部'],['checkin','今日入住'],['checkout','今日退房'],['staying','住宿中'],['confirmed','已確認'],['cancelled','已取消']].map(([value,label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('');
 }
-
 function bookingCard(item) {
   const statusMap = { confirmed: ['已確認', ''], checkedin: ['已入住', 'success'], completed: ['已退房', 'success'], cancelled: ['已取消', 'danger'] };
   const [statusLabel, tone] = statusMap[item.status] || [item.status, ''];
   return `<article class="list-card"><div class="list-head"><div><div class="list-title">${escapeHtml(item.guest)}・${escapeHtml(roomName(item.roomId))}</div><div class="list-meta">${escapeHtml(item.checkIn)} ${escapeHtml(item.checkInTime || '15:00')} → ${escapeHtml(item.checkOut)}・${item.guests || 1} 人・${escapeHtml(item.platform || '直接訂房')}<br>${money(item.amount)}・訂金 ${money(item.deposit)}${item.phone ? `・${escapeHtml(item.phone)}` : ''}</div></div><span class="status ${tone}">${statusLabel}</span></div>${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ''}<div class="button-row section"><button class="secondary-button compact" data-booking-edit="${item.id}">修改</button>${item.status === 'confirmed' ? `<button class="primary-button compact" data-booking-status="${item.id}" data-status="checkedin">標記入住</button>` : ''}${item.status === 'checkedin' ? `<button class="primary-button compact" data-booking-status="${item.id}" data-status="completed">標記退房</button>` : ''}${!['cancelled','completed'].includes(item.status) ? `<button class="secondary-button compact" data-booking-status="${item.id}" data-status="cancelled">取消訂房</button>` : ''}<button class="ghost-button" data-booking-delete="${item.id}">刪除</button></div></article>`;
 }
 
-function bookingDepositDescription(booking) {
-  return `${booking.guest}・${roomName(booking.roomId)}`;
-}
-
-function bookingDepositTransactions(bookingId, legacyDescriptions = []) {
-  const descriptions = new Set(legacyDescriptions.filter(Boolean));
-  return state.transactions.filter(item => (
-    item.type === 'deposit'
-    && (
-      item.bookingId === bookingId
-      || (!item.bookingId && descriptions.has(item.description))
-    )
-  ));
-}
-
-/**
- * 每筆訂房只保留一筆自動訂金交易。
- * 也會把舊版用「差額累加」建立的同名交易整併為一筆。
- */
-function syncBookingDepositTransaction(booking, {
-  previousDescription = '',
-  active = booking.status !== 'cancelled'
-} = {}) {
-  const currentDescription = bookingDepositDescription(booking);
-  const related = bookingDepositTransactions(
-    booking.id,
-    [previousDescription, currentDescription]
-  );
-  const relatedIds = new Set(related.map(item => item.id));
-  const existing = related.find(item => item.bookingId === booking.id) || related[0];
-
-  state.transactions = state.transactions.filter(item => !relatedIds.has(item.id));
-
-  const amount = Number(booking.deposit || 0);
-  if (!active || amount <= 0) return;
+/** 將訂金異動寫入收支。正差額是訂金，負差額是退款。 */
+function recordBookingDepositChange(booking, difference, reason = '訂金調整') {
+  const amount = Math.abs(Number(difference || 0));
+  if (!amount) return;
 
   state.transactions.push({
-    ...(existing || {}),
-    id: existing?.id || uid('tx'),
+    id: uid('tx'),
     bookingId: booking.id,
-    date: existing?.date || today(),
-    type: 'deposit',
+    date: today(),
+    type: difference > 0 ? 'deposit' : 'refund',
     amount,
-    category: '訂金',
-    description: currentDescription
+    category: difference > 0 ? '訂金' : '訂金退款',
+    description: `${booking.guest}・${roomName(booking.roomId)}・${reason}`
   });
+}
+
+/** 取消或刪除仍有訂金的訂房時，只沖銷一次。 */
+function refundBookingDeposit(booking, reason) {
+  const deposit = Number(booking.deposit || 0);
+  if (deposit <= 0 || booking.depositFullyRefunded) return;
+
+  recordBookingDepositChange(booking, -deposit, reason);
+  booking.depositFullyRefunded = true;
+  booking.depositRefundedAt = new Date().toISOString();
 }
 
 function openBookingForm(booking = {}) {
@@ -109,67 +83,48 @@ function openBookingForm(booking = {}) {
     { name: 'notes', label: '備註', type: 'textarea', value: booking.notes, wide: true }
   ], onSubmit: async values => {
     if (values.checkOut <= values.checkIn) { showToast('退房日期必須晚於入住日期'); return false; }
+    const target = booking.id ? state.bookings.find(item => item.id === booking.id) : { id: uid('booking'), status: 'confirmed' };
+    if (!target) { showToast('找不到這筆訂房'); return false; }
 
-    const target = booking.id
-      ? state.bookings.find(item => item.id === booking.id)
-      : { id: uid('booking'), status: 'confirmed' };
-    const previousDescription = booking.id ? bookingDepositDescription(target) : '';
-
-    Object.assign(target, {
-      ...values,
-      guests: Number(values.guests),
-      amount: Number(values.amount || 0),
-      deposit: Number(values.deposit || 0),
-      checkInTime: values.checkInTime || '15:00'
-    });
-
+    const previousDeposit = Number(target.deposit || 0);
+    Object.assign(target, { ...values, guests: Number(values.guests), amount: Number(values.amount || 0), deposit: Number(values.deposit || 0), checkInTime: values.checkInTime || '15:00' });
     if (!booking.id) state.bookings.push(target);
-    syncBookingDepositTransaction(target, { previousDescription });
+
+    // 已取消且已完成退款的訂房不再因後續編輯重複建立帳務。
+    if (!(target.status === 'cancelled' && target.depositFullyRefunded)) {
+      recordBookingDepositChange(target, Number(target.deposit) - previousDeposit, booking.id ? '修改訂房' : '新增訂房');
+    }
 
     await saveState();
     renderRoute();
     showToast('訂房已儲存');
   }});
-
   const form = $('#formDialogBody');
   const checkIn = form.elements.checkIn;
   const checkOut = form.elements.checkOut;
-  const updateMinimum = () => {
-    const next = addDays(checkIn.value, 1);
-    checkOut.min = next;
-    if (checkOut.value < next) checkOut.value = next;
-  };
+  const updateMinimum = () => { const next = addDays(checkIn.value, 1); checkOut.min = next; if (checkOut.value < next) checkOut.value = next; };
   checkIn.addEventListener('change', updateMinimum);
   updateMinimum();
 }
-
 async function updateBookingStatus(id, status) {
   const booking = state.bookings.find(item => item.id === id);
   if (!booking) return;
 
-  const previousDescription = bookingDepositDescription(booking);
-  booking.status = status;
-
   if (status === 'cancelled') {
-    syncBookingDepositTransaction(booking, { previousDescription, active: false });
+    refundBookingDeposit(booking, '取消訂房');
   }
-  if (status === 'completed') ensureHousekeepingRecord(booking.checkOut);
 
+  booking.status = status;
+  if (status === 'completed') ensureHousekeepingRecord(booking.checkOut);
   await saveState();
   renderRoute();
 }
-
 async function deleteBooking(id) {
   const booking = state.bookings.find(item => item.id === id);
-  if (!booking || !(await confirmAction('刪除訂房', `確定刪除 ${booking.guest} 的訂房嗎？相關的自動訂金交易也會一併刪除。`))) return;
+  if (!booking || !(await confirmAction('刪除訂房', `確定刪除 ${booking.guest} 的訂房嗎？若尚有訂金，系統會同步建立退款紀錄。`))) return;
 
-  const description = bookingDepositDescription(booking);
-  const relatedIds = new Set(
-    bookingDepositTransactions(booking.id, [description]).map(item => item.id)
-  );
-  state.transactions = state.transactions.filter(item => !relatedIds.has(item.id));
+  refundBookingDeposit(booking, '刪除訂房');
   state.bookings = state.bookings.filter(item => item.id !== id);
-
   await saveState();
   renderRoute();
 }

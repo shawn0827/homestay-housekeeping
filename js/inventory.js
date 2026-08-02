@@ -85,7 +85,7 @@ function inventoryRow(item) {
     </article>
   `;
 }
-/** 增減庫存；只有減少庫存時才增加累計耗用。 */
+/** 增減庫存；只有減少庫存時才增加累計耗用，補貨不回沖歷史耗用。 */
 async function changeInventory(id, difference) {
   const item = state.inventory.find(entry => entry.id === id);
   if (!item) return;
@@ -96,7 +96,6 @@ async function changeInventory(id, difference) {
   if (difference < 0) {
     item.usage = Number(item.usage || 0) + Math.abs(difference);
   }
-
   await saveState();
   renderInventory();
 }

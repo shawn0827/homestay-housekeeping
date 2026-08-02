@@ -17,11 +17,9 @@ function renderDashboard() {
   const arrivals = state.bookings.filter(item =>
     item.checkIn === date && item.status !== 'cancelled'
   );
-
   const departures = state.bookings.filter(item =>
     item.checkOut === date && item.status !== 'cancelled'
   );
-
   const staying = state.bookings.filter(item =>
     item.checkIn <= date &&
     item.checkOut > date &&
@@ -33,6 +31,10 @@ function renderDashboard() {
   );
   const openMaintenance = state.maintenance.filter(item => item.status !== 'done');
   const net = monthlyNet(month);
+  const monthlyBookings = state.bookings.filter(item =>
+    item.checkIn.startsWith(month) && item.status !== 'cancelled'
+  ).length;
+
   $('#app').innerHTML = `
     <section class="page page-home">
       ${dashboardResponsiveStyles()}
@@ -65,6 +67,10 @@ function renderDashboard() {
             <strong>${money(net)}</strong>
             <button class="primary-button compact dashboard-booking-desktop" data-action="quick-booking">＋本日訂房</button>
           </div>
+          <div class="card operation-card operation-card-monthly-bookings">
+            <div class="muted">本月訂房</div>
+            <strong>${monthlyBookings} 筆</strong>
+          </div>
           <div class="card operation-card">
             <div class="muted">低庫存</div>
             <strong>${lowInventory.length} 項</strong>
@@ -72,12 +78,6 @@ function renderDashboard() {
           <div class="card operation-card">
             <div class="muted">待維修</div>
             <strong>${openMaintenance.length} 件</strong>
-          </div>
-          <div class="card operation-card">
-            <div class="muted">本月訂房</div>
-            <strong>${state.bookings.filter(item =>
-              item.checkIn.startsWith(month) && item.status !== 'cancelled'
-            ).length} 筆</strong>
           </div>
         </div>
       </section>
@@ -87,11 +87,9 @@ function renderDashboard() {
   $$('[data-action="quick-booking"]').forEach(button => {
     button.onclick = () => openBookingForm();
   });
-
   $$('[data-kpi]').forEach(button => {
     button.onclick = () => handleDashboardKpi(button.dataset.kpi, date);
   });
-
   bindDashboardAlerts();
 }
 
@@ -126,7 +124,6 @@ function handleDashboardKpi(action, date) {
     navigate('housekeeping', { date });
     return;
   }
-
   navigate('bookings', { filter: action, date });
 }
 
@@ -146,7 +143,6 @@ function renderAlerts(arrivals, lowInventory, maintenance) {
         </button>
       `);
     });
-
   lowInventory.forEach(item => {
     alerts.push(`
       <button class="alert warning" data-alert-route="inventory">
@@ -158,7 +154,6 @@ function renderAlerts(arrivals, lowInventory, maintenance) {
       </button>
     `);
   });
-
   maintenance.forEach(item => {
     alerts.push(`
       <button class="alert danger" data-alert-route="maintenance">
@@ -170,7 +165,6 @@ function renderAlerts(arrivals, lowInventory, maintenance) {
       </button>
     `);
   });
-
   if (!alerts.length) {
     return `
       <div class="alert">
@@ -182,7 +176,6 @@ function renderAlerts(arrivals, lowInventory, maintenance) {
       </div>
     `;
   }
-
   return alerts.join('');
 }
 
