@@ -1,6 +1,6 @@
 /* ================================================================
    sw.js — v10.4.1 離線快取
-   僅快取本站靜態資源；外部 API、Google OAuth 與 CDN 不進入快取。
+   發布新版或替換圖示後，請增加 CACHE_VERSION。
    ================================================================ */
 const CACHE_VERSION = 'homestay-v10-4-1';
 const ASSETS = [
@@ -54,7 +54,6 @@ const ASSETS = [
   "./js/settings.js",
   "./js/app.js"
 ];
-
 self.addEventListener('install', event => {
   event.waitUntil(
     caches
@@ -84,10 +83,17 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // 頁面導覽：網路優先，離線時才回首頁。
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then(response => response)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
+          }
+          return response;
+        })
         .catch(async () => (
           await caches.match(request)
           || await caches.match('./index.html')
@@ -97,16 +103,20 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  event.respondWith((async () => {
-    try {
-      const response = await fetch(request);
-      if (response.ok && response.type === 'basic') {
-        const cache = await caches.open(CACHE_VERSION);
-        await cache.put(request, response.clone());
-      }
-      return response;
-    } catch (error) {
-      return await caches.match(request) || Response.error();
-    }
-  })());
+  // 同源靜態資源：快取優先，背景更新；不再用 index.html 冒充 JS、JSON 或圖片。
+  event.respondWith(
+    caches.match(request).then(cached => {
+      const network = fetch(request)
+        .then(response => {
+          if (response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => cached || Response.error());
+
+      return cached || network;
+    })
+  );
 });
