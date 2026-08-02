@@ -37,7 +37,6 @@ function renderDashboard() {
 
   $('#app').innerHTML = `
     <section class="page page-home">
-      ${dashboardResponsiveStyles()}
       ${pageHeader({
         eyebrow: 'TODAY',
         title: '今日營運',
@@ -65,7 +64,6 @@ function renderDashboard() {
           <div class="card operation-card operation-card-net">
             <div class="muted">本月淨額</div>
             <strong>${money(net)}</strong>
-            <button class="primary-button compact dashboard-booking-desktop" data-action="quick-booking">＋本日訂房</button>
           </div>
           <div class="card operation-card operation-card-monthly-bookings">
             <div class="muted">本月訂房</div>
@@ -91,20 +89,6 @@ function renderDashboard() {
     button.onclick = () => handleDashboardKpi(button.dataset.kpi, date);
   });
   bindDashboardAlerts();
-}
-
-function dashboardResponsiveStyles() {
-  return `
-    <style>
-      .dashboard-booking-mobile { display: none; }
-      .operation-card-net { align-items: flex-start; }
-      .dashboard-booking-desktop { margin-top: 2px; }
-      @media (max-width: 560px) {
-        .dashboard-booking-mobile { display: inline-flex; }
-        .dashboard-booking-desktop { display: none; }
-      }
-    </style>
-  `;
 }
 
 /** 建立主頁上方的統計捷徑。 */
