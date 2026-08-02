@@ -1,8 +1,9 @@
 /* ================================================================
-   sw.js — v10.4.1 離線快取
+   sw.js — v10.2 離線快取
    發布新版或替換圖示後，請增加 CACHE_VERSION。
    ================================================================ */
-const CACHE_VERSION = 'homestay-v10-4-1';
+const CACHE_VERSION = 'homestay-v10-4-0';
+
 const ASSETS = [
   "./",
   "./index.html",
@@ -54,6 +55,7 @@ const ASSETS = [
   "./js/settings.js",
   "./js/app.js"
 ];
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches
@@ -77,46 +79,17 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
+  if (event.request.method !== 'GET') return;
 
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  // 頁面導覽：網路優先，離線時才回首頁。
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(async () => (
-          await caches.match(request)
-          || await caches.match('./index.html')
-          || Response.error()
-        ))
-    );
-    return;
-  }
-
-  // 同源靜態資源：快取優先，背景更新；不再用 index.html 冒充 JS、JSON 或圖片。
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response.ok && response.type === 'basic') {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached || Response.error());
-
-      return cached || network;
-    })
+    fetch(event.request)
+      .then(response => {
+        const copy = response.clone();
+        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request).then(
+        cached => cached || caches.match('./index.html')
+      ))
   );
 });
