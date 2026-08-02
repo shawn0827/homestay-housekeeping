@@ -1,6 +1,9 @@
 /* housekeeping.js — 房務清單、驗房與照片 */
 'use strict';
 
+const MAX_HOUSEKEEPING_PHOTOS_PER_AREA = 6;
+const MAX_HOUSEKEEPING_PHOTO_BYTES = 900 * 1024;
+
 function ensureHousekeepingRecord(date) {
   state.housekeepingRecords[date] ||= { date, areas: {}, completedAt: null };
   const record = state.housekeepingRecords[date];
@@ -51,7 +54,7 @@ function renderHousekeepingChecklist(date, areaId, requestedGroup) {
   const activeGroup = groups.includes(requestedGroup) ? requestedGroup : groups[0];
   const record = ensureHousekeepingRecord(date).areas[areaId];
   const stats = areaHousekeepingStats(date, areaId);
-  $('#app').innerHTML = `<section class="page"><button class="back-button" data-back-housekeeping>← 返回房務總覽</button>${pageHeader({ eyebrow: 'CHECKLIST', title: `${area.icon} ${area.name}`, subtitle: `${date}・${stats.done}/${stats.total} 項`, actions: `<span class="status ${stats.percent === 100 ? 'success' : ''}">${stats.percent}%</span>` })}<div class="checklist-layout"><aside class="group-menu">${groups.map(group => `<button class="group-button ${group === activeGroup ? 'active' : ''}" data-group="${escapeHtml(group)}"><span>${escapeHtml(group)}</span><span>${area.items.filter(item => item.group === group && record.checks[item.id]).length}/${area.items.filter(item => item.group === group).length}</span></button>`).join('')}</aside><div><div class="check-group">${area.items.filter(item => item.group === activeGroup).map(item => `<label class="check-row"><input type="checkbox" data-task="${item.id}" ${record.checks[item.id] ? 'checked' : ''}><span>${escapeHtml(item.text)}</span></label>`).join('')}</div><section class="section card"><label class="field">備註／異常紀錄<textarea id="housekeepingNotes" rows="4" placeholder="例如：吹風機異常、床單污損……">${escapeHtml(record.notes || '')}</textarea></label></section><section class="section card"><div class="section-title"><h2>完成照片</h2><label class="secondary-button compact">＋拍照／選取<input id="housekeepingPhoto" type="file" accept="image/*" capture="environment" hidden></label></div><div class="photo-grid">${(record.photos || []).map((photo,index) => `<div class="photo-card"><img src="${photo}" alt="房務照片"><button data-delete-photo="${index}">×</button></div>`).join('') || '<div class="muted">尚未加入照片</div>'}</div></section><button class="primary-button full section" data-save-area>儲存此區</button></div></div></section>`;
+  $('#app').innerHTML = `<section class="page"><button class="back-button" data-back-housekeeping>← 返回房務總覽</button>${pageHeader({ eyebrow: 'CHECKLIST', title: `${area.icon} ${area.name}`, subtitle: `${date}・${stats.done}/${stats.total} 項`, actions: `<span class="status ${stats.percent === 100 ? 'success' : ''}">${stats.percent}%</span>` })}<div class="checklist-layout"><aside class="group-menu">${groups.map(group => `<button class="group-button ${group === activeGroup ? 'active' : ''}" data-group="${escapeHtml(group)}"><span>${escapeHtml(group)}</span><span>${area.items.filter(item => item.group === group && record.checks[item.id]).length}/${area.items.filter(item => item.group === group).length}</span></button>`).join('')}</aside><div><div class="check-group">${area.items.filter(item => item.group === activeGroup).map(item => `<label class="check-row"><input type="checkbox" data-task="${item.id}" ${record.checks[item.id] ? 'checked' : ''}><span>${escapeHtml(item.text)}</span></label>`).join('')}</div><section class="section card"><label class="field">備註／異常紀錄<textarea id="housekeepingNotes" rows="4" placeholder="例如：吹風機異常、床單污損……">${escapeHtml(record.notes || '')}</textarea></label></section><section class="section card"><div class="section-title"><h2>完成照片</h2><label class="secondary-button compact">＋拍照／選取<input id="housekeepingPhoto" type="file" accept="image/*" capture="environment" hidden></label></div><div class="muted">每區最多 ${MAX_HOUSEKEEPING_PHOTOS_PER_AREA} 張，單張壓縮後上限約 900 KB。</div><div class="photo-grid">${(record.photos || []).map((photo,index) => `<div class="photo-card"><img src="${photo}" alt="房務照片"><button data-delete-photo="${index}">×</button></div>`).join('') || '<div class="muted">尚未加入照片</div>'}</div></section><button class="primary-button full section" data-save-area>儲存此區</button></div></div></section>`;
   $('[data-back-housekeeping]').onclick = () => navigate('housekeeping', { date });
   $$('[data-group]').forEach(button => button.onclick = () => navigate('housekeeping', { date, area: areaId, group: button.dataset.group }));
   $$('[data-task]').forEach(input => input.onchange = async () => { record.checks[input.dataset.task] = input.checked; ensureHousekeepingRecord(date).completedAt = null; scheduleSave(); renderHousekeepingChecklist(date, areaId, activeGroup); });
@@ -60,27 +63,98 @@ function renderHousekeepingChecklist(date, areaId, requestedGroup) {
   $$('[data-delete-photo]').forEach(button => button.onclick = async () => { record.photos.splice(Number(button.dataset.deletePhoto),1); await saveState(); renderHousekeepingChecklist(date, areaId, activeGroup); });
 }
 
+function dataUrlByteSize(dataUrl) {
+  const base64 = String(dataUrl).split(',')[1] || '';
+  return Math.ceil(base64.length * 3 / 4);
+}
+
 async function addHousekeepingPhoto(date, areaId, file, group) {
   if (!file) return;
-  const data = await compressImage(file, 1280, .76);
-  ensureHousekeepingRecord(date).areas[areaId].photos.push(data);
-  await saveState();
-  renderHousekeepingChecklist(date, areaId, group);
+  if (!file.type?.startsWith('image/')) {
+    showToast('請選擇圖片檔案');
+    return;
+  }
+
+  const photos = ensureHousekeepingRecord(date).areas[areaId].photos;
+  if (photos.length >= MAX_HOUSEKEEPING_PHOTOS_PER_AREA) {
+    showToast(`每區最多 ${MAX_HOUSEKEEPING_PHOTOS_PER_AREA} 張照片`);
+    return;
+  }
+
+  try {
+    const data = await compressImage(file, 1024, .7);
+    if (dataUrlByteSize(data) > MAX_HOUSEKEEPING_PHOTO_BYTES) {
+      showToast('照片壓縮後仍過大，請改用較小的照片');
+      return;
+    }
+
+    photos.push(data);
+    try {
+      await saveState();
+    } catch (error) {
+      photos.pop();
+      console.error('房務照片儲存失敗', error);
+      showToast('照片儲存失敗，裝置空間可能不足');
+      return;
+    }
+
+    renderHousekeepingChecklist(date, areaId, group);
+  } catch (error) {
+    console.error('房務照片處理失敗', error);
+    showToast('照片處理失敗，請重新選擇');
+  }
 }
 
 function compressImage(file, maxSize, quality) {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    const release = () => URL.revokeObjectURL(objectUrl);
+
     image.onload = () => {
-      const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(image.width * ratio); canvas.height = Math.round(image.height * ratio);
-      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      try {
+        const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * ratio);
+        canvas.height = Math.round(image.height * ratio);
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (error) {
+        reject(error);
+      } finally {
+        release();
+      }
     };
-    image.onerror = reject;
-    image.src = URL.createObjectURL(file);
+
+    image.onerror = error => {
+      release();
+      reject(error);
+    };
+    image.src = objectUrl;
   });
+}
+
+async function autoSyncHousekeeping() {
+  if (!state.settings.google.autoSync) return;
+  if (
+    typeof googleConnected !== 'function'
+    || typeof restoreGoogleDriveSession !== 'function'
+    || typeof syncGoogleDrive !== 'function'
+  ) return;
+
+  try {
+    const connected = googleConnected() || await restoreGoogleDriveSession();
+    if (!connected) {
+      showToast('房務已完成；Google Drive 尚未同步');
+      return;
+    }
+
+    const synced = await syncGoogleDrive({ silent: true });
+    if (!synced) showToast('房務已完成；Google Drive 同步失敗');
+  } catch (error) {
+    console.error('房務自動同步失敗', error);
+    showToast('房務已完成；Google Drive 同步失敗');
+  }
 }
 
 async function completeHousekeeping(date) {
@@ -90,12 +164,22 @@ async function completeHousekeeping(date) {
   await saveState();
   renderHousekeeping({ date });
   showToast('今日房務已完成');
-  if (state.settings.google.autoSync && googleAccessToken) syncGoogleDrive({ silent: true }).catch(console.error);
+  await autoSyncHousekeeping();
 }
 
 async function resetHousekeeping(date) {
-  if (!(await confirmAction('清除本日房務', `確定清除 ${date} 的全部勾選與備註嗎？`))) return;
-  delete state.housekeepingRecords[date];
+  if (!(await confirmAction('清除本日房務', `確定清除 ${date} 的全部勾選與備註嗎？已拍攝的照片會保留。`))) return;
+
+  const record = ensureHousekeepingRecord(date);
+  Object.values(record.areas).forEach(areaRecord => {
+    Object.keys(areaRecord.checks || {}).forEach(itemId => {
+      areaRecord.checks[itemId] = false;
+    });
+    areaRecord.notes = '';
+    areaRecord.savedAt = null;
+  });
+  record.completedAt = null;
+
   await saveState();
   renderHousekeeping({ date });
 }

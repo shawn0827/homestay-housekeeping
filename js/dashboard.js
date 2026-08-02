@@ -14,7 +14,6 @@ const DASHBOARD_ICONS = {
 function renderDashboard() {
   const date = today();
   const month = date.slice(0, 7);
-
   const arrivals = state.bookings.filter(item =>
     item.checkIn === date && item.status !== 'cancelled'
   );
@@ -28,30 +27,27 @@ function renderDashboard() {
     item.checkOut > date &&
     !['cancelled', 'completed'].includes(item.status)
   );
-
   const housekeeping = housekeepingStats(date);
   const lowInventory = state.inventory.filter(item =>
     Number(item.qty) <= Number(item.min)
   );
   const openMaintenance = state.maintenance.filter(item => item.status !== 'done');
   const net = monthlyNet(month);
-
   $('#app').innerHTML = `
     <section class="page page-home">
+      ${dashboardResponsiveStyles()}
       ${pageHeader({
         eyebrow: 'TODAY',
         title: '今日營運',
         subtitle: date,
-        actions: '<button class="primary-button" data-action="quick-booking">＋新增訂房</button>'
+        actions: '<button class="primary-button dashboard-booking-mobile" data-action="quick-booking">＋本日訂房</button>'
       })}
-
       <div class="grid grid-4" id="dashboardKpis">
         ${dashboardKpi('今日入住', arrivals.length, '查看今日入住', 'checkin')}
         ${dashboardKpi('今日退房', departures.length, '查看今日退房', 'checkout')}
         ${dashboardKpi('住宿中', staying.length, '查看住宿中的客人', 'staying')}
         ${dashboardKpi('房務完成', `${housekeeping.percent}%`, '前往今日房務', 'housekeeping')}
       </div>
-
       <section class="section">
         <div class="section-title">
           <h2>提醒事項</h2>
@@ -61,13 +57,13 @@ function renderDashboard() {
           ${renderAlerts(arrivals, lowInventory, openMaintenance)}
         </div>
       </section>
-
       <section class="section">
         <div class="section-title"><h2>營運概況</h2></div>
         <div class="grid grid-4 operation-overview">
-          <div class="card operation-card">
+          <div class="card operation-card operation-card-net">
             <div class="muted">本月淨額</div>
             <strong>${money(net)}</strong>
+            <button class="primary-button compact dashboard-booking-desktop" data-action="quick-booking">＋本日訂房</button>
           </div>
           <div class="card operation-card">
             <div class="muted">低庫存</div>
@@ -88,13 +84,29 @@ function renderDashboard() {
     </section>
   `;
 
-  $('[data-action="quick-booking"]').onclick = () => openBookingForm();
+  $$('[data-action="quick-booking"]').forEach(button => {
+    button.onclick = () => openBookingForm();
+  });
 
   $$('[data-kpi]').forEach(button => {
     button.onclick = () => handleDashboardKpi(button.dataset.kpi, date);
   });
 
   bindDashboardAlerts();
+}
+
+function dashboardResponsiveStyles() {
+  return `
+    <style>
+      .dashboard-booking-mobile { display: none; }
+      .operation-card-net { align-items: flex-start; }
+      .dashboard-booking-desktop { margin-top: 2px; }
+      @media (max-width: 560px) {
+        .dashboard-booking-mobile { display: inline-flex; }
+        .dashboard-booking-desktop { display: none; }
+      }
+    </style>
+  `;
 }
 
 /** 建立主頁上方的統計捷徑。 */
@@ -121,7 +133,6 @@ function handleDashboardKpi(action, date) {
 /** 建立提醒清單。 */
 function renderAlerts(arrivals, lowInventory, maintenance) {
   const alerts = [];
-
   arrivals
     .sort((a, b) => (a.checkInTime || '').localeCompare(b.checkInTime || ''))
     .forEach(item => {

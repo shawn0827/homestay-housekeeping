@@ -6,7 +6,6 @@
    - 同一列顯示庫存、安全量、目標、累計耗用與操作按鈕。
    ================================================================ */
 'use strict';
-
 /** 顯示備品管理頁面。 */
 function renderInventory() {
   $('#app').innerHTML = `
@@ -25,7 +24,6 @@ function renderInventory() {
       </div>
     </section>
   `;
-
   $('[data-add-inventory]').onclick = () => openInventoryForm();
 
   $$('[data-inventory-minus]').forEach(button => {
@@ -35,7 +33,6 @@ function renderInventory() {
   $$('[data-inventory-plus]').forEach(button => {
     button.onclick = () => changeInventory(button.dataset.inventoryPlus, 1);
   });
-
   $$('[data-inventory-edit]').forEach(button => {
     button.onclick = () => {
       const item = state.inventory.find(entry => entry.id === button.dataset.inventoryEdit);
@@ -47,7 +44,6 @@ function renderInventory() {
     button.onclick = () => deleteInventory(button.dataset.inventoryDelete);
   });
 }
-
 /** 建立單一備品橫列。 */
 function inventoryRow(item) {
   const quantity = Number(item.qty || 0);
@@ -57,7 +53,6 @@ function inventoryRow(item) {
   const percent = Math.round((quantity / target) * 100);
   const low = quantity <= minimum;
   const tone = quantity <= minimum / 2 ? 'danger' : low ? 'warning' : '';
-
   return `
     <article class="inventory-row">
       <div class="inventory-row-main">
@@ -70,20 +65,17 @@ function inventoryRow(item) {
             ${low ? '需要補貨' : '庫存正常'}
           </span>
         </div>
-
         <div class="inventory-metrics">
           <div><span>目前庫存</span><strong>${quantity}${escapeHtml(item.unit)}</strong></div>
           <div><span>安全量</span><strong>${minimum}${escapeHtml(item.unit)}</strong></div>
           <div><span>累計耗用</span><strong>${usage}${escapeHtml(item.unit)}</strong></div>
         </div>
-
         ${progressBar(percent, tone)}
         <div class="progress-meta">
           <span>庫存進度 ${Math.min(100, Math.max(0, percent))}%</span>
           <span>${quantity}／${target}${escapeHtml(item.unit)}</span>
         </div>
       </div>
-
       <div class="inventory-row-actions">
         <button class="secondary-button compact" data-inventory-minus="${item.id}">−1</button>
         <button class="secondary-button compact" data-inventory-plus="${item.id}">＋1</button>
@@ -93,8 +85,7 @@ function inventoryRow(item) {
     </article>
   `;
 }
-
-/** 增減庫存；減少庫存時同步增加累計耗用。 */
+/** 增減庫存；只有減少庫存時才增加累計耗用。 */
 async function changeInventory(id, difference) {
   const item = state.inventory.find(entry => entry.id === id);
   if (!item) return;
@@ -104,14 +95,11 @@ async function changeInventory(id, difference) {
 
   if (difference < 0) {
     item.usage = Number(item.usage || 0) + Math.abs(difference);
-  } else if (Number(item.usage || 0) > 0) {
-    item.usage = Math.max(0, Number(item.usage) - difference);
   }
 
   await saveState();
   renderInventory();
 }
-
 /** 新增或修改備品。 */
 function openInventoryForm(item = {}) {
   openForm({
@@ -135,7 +123,6 @@ function openInventoryForm(item = {}) {
       const target = item.id
         ? state.inventory.find(entry => entry.id === item.id)
         : { id: uid('stock') };
-
       Object.assign(target, {
         name: values.name,
         qty: Number(values.qty),
@@ -157,7 +144,6 @@ function openInventoryForm(item = {}) {
 async function deleteInventory(id) {
   const item = state.inventory.find(entry => entry.id === id);
   if (!item) return;
-
   const confirmed = await confirmAction('刪除備品', `確定刪除「${item.name}」嗎？`);
   if (!confirmed) return;
 
