@@ -2,7 +2,7 @@
    sw.js — v10.4.1 離線快取
    發布新版或替換圖示後，請增加 CACHE_VERSION。
    ================================================================ */
-const CACHE_VERSION = 'homestay-v10-4-1';
+const CACHE_VERSION = 'homestay-v10-4-2';
 const ASSETS = [
   "./",
   "./index.html",
